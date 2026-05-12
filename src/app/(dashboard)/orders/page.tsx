@@ -210,17 +210,22 @@ export default function OrdersPage() {
     doc.line(130, y, 190, y);
     y += 10;
 
-    // Calculate remaining totals
-    const originalSubtotal = order.total_amount - (order.tax_amount || 0);
-    const taxRate = (order.tax_amount || 0) / originalSubtotal;
-    const remainingTotal = order.total_amount - (order.refunded_amount || 0);
-    const remainingSubtotal = remainingTotal / (1 + taxRate);
-    const remainingTax = remainingTotal - remainingSubtotal;
+    // Calculate remaining totals accurately from items
+    let remainingSubtotal = 0;
+    order.order_items.forEach((item: any) => {
+      const remainingQty = item.quantity - (item.refunded_quantity || 0);
+      remainingSubtotal += (item.unit_price || 0) * remainingQty;
+    });
 
-    doc.text('Subtotal:', 130, y);
+    const originalSubtotal = order.total_amount - (order.tax_amount || 0);
+    const taxRate = originalSubtotal > 0 ? (order.tax_amount || 0) / originalSubtotal : 0.08;
+    const remainingTax = remainingSubtotal * taxRate;
+    const remainingTotal = remainingSubtotal + remainingTax;
+
+    doc.text('Remaining Subtotal:', 130, y);
     doc.text(`$${remainingSubtotal.toFixed(2)}`, 190, y, { align: 'right' });
     y += 7;
-    doc.text('Tax:', 130, y);
+    doc.text(`Tax (${(taxRate * 100).toFixed(1)}%):`, 130, y);
     doc.text(`$${remainingTax.toFixed(2)}`, 190, y, { align: 'right' });
     
     if (order.refunded_amount > 0) {
@@ -234,8 +239,9 @@ export default function OrdersPage() {
     y += 10;
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('FINAL TOTAL:', 130, y);
+    doc.text('NEW TOTAL:', 130, y);
     doc.text(`$${remainingTotal.toFixed(2)}`, 190, y, { align: 'right' });
+
 
 
     if (order.refund_reason) {
@@ -419,21 +425,16 @@ export default function OrdersPage() {
 
             <div className="pt-6 border-t border-gray-100 space-y-3">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500 font-medium">Subtotal</span>
+                <span className="text-gray-500 font-medium">Remaining Subtotal</span>
                 <span className="font-bold text-gray-900">
-                  ${(
-                    ((selectedOrder?.total_amount || 0) - (selectedOrder?.refunded_amount || 0)) / 
-                    (1 + (selectedOrder?.tax_amount || 0) / ((selectedOrder?.total_amount || 0) - (selectedOrder?.tax_amount || 0) || 1))
-                  ).toFixed(2)}
+                  ${(selectedOrder?.order_items?.reduce((sum: number, item: any) => sum + (item.unit_price || 0) * (item.quantity - (item.refunded_quantity || 0)), 0) || 0).toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500 font-medium">Tax</span>
                 <span className="font-bold text-gray-900">
-                  ${(
-                    ((selectedOrder?.total_amount || 0) - (selectedOrder?.refunded_amount || 0)) - 
-                    (((selectedOrder?.total_amount || 0) - (selectedOrder?.refunded_amount || 0)) / 
-                    (1 + (selectedOrder?.tax_amount || 0) / ((selectedOrder?.total_amount || 0) - (selectedOrder?.tax_amount || 0) || 1)))
+                  ${((selectedOrder?.order_items?.reduce((sum: number, item: any) => sum + (item.unit_price || 0) * (item.quantity - (item.refunded_quantity || 0)), 0) || 0) * 
+                    ((selectedOrder?.tax_amount || 0) / ((selectedOrder?.total_amount || 0) - (selectedOrder?.tax_amount || 0) || 1))
                   ).toFixed(2)}
                 </span>
               </div>
@@ -447,9 +448,12 @@ export default function OrdersPage() {
 
               <div className="flex justify-between items-center pt-4 border-t border-gray-100">
                 <div>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Total Paid</p>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">New Total</p>
                   <p className="text-3xl font-black text-black tracking-tighter">
-                    ${((selectedOrder?.total_amount || 0) - (selectedOrder?.refunded_amount || 0)).toFixed(2)}
+                    ${(
+                      (selectedOrder?.order_items?.reduce((sum: number, item: any) => sum + (item.unit_price || 0) * (item.quantity - (item.refunded_quantity || 0)), 0) || 0) * 
+                      (1 + (selectedOrder?.tax_amount || 0) / ((selectedOrder?.total_amount || 0) - (selectedOrder?.tax_amount || 0) || 1))
+                    ).toFixed(2)}
                   </p>
                 </div>
                 <div className="text-right">
