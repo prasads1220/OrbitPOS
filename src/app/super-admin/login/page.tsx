@@ -8,7 +8,7 @@ export default function SuperAdminLoginPage() {
         <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-gradient-to-br from-[#0071e3]/40 to-[#00c6ff]/20 rounded-full blur-[120px] mix-blend-screen animate-[pulse_10s_ease-in-out_infinite]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-gradient-to-tr from-[#8a2be2]/30 to-[#4a00e0]/20 rounded-full blur-[120px] mix-blend-screen animate-[pulse_12s_ease-in-out_infinite_1s]" />
         <div className="absolute top-[20%] right-[20%] w-[40%] h-[40%] bg-gradient-to-bl from-[#ff007f]/20 to-[#7f00ff]/20 rounded-full blur-[120px] mix-blend-screen animate-[pulse_14s_ease-in-out_infinite_2s]" />
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
+
       </div>
 
       {/* Glossy Glass Card Container */}
