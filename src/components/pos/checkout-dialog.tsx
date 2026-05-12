@@ -354,7 +354,7 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
                 <Button 
                   className="h-14 rounded-2xl bg-black hover:bg-gray-800 text-white font-bold text-lg flex-[2] shadow-xl"
                   disabled={parseFloat(cashTendered) < total || !cashTendered}
-                  onClick={finalizeOrder}
+                  onClick={() => finalizeOrder()}
                 >
                   Complete Order
                 </Button>
