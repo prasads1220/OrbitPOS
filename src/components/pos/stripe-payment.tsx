@@ -57,7 +57,33 @@ function CheckoutForm({ amount, onReady, onCancel }: { amount: number, onReady: 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
+      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
+        <div className="flex items-center justify-between px-2">
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center">
+              <RefreshCw className="h-5 w-5 text-blue-500" />
+            </div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase">Tap</span>
+          </div>
+          <div className="w-8 h-[1px] bg-gray-100" />
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center">
+              <CreditCard className="h-5 w-5 text-indigo-500" />
+            </div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase">Insert</span>
+          </div>
+          <div className="w-8 h-[1px] bg-gray-100" />
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center">
+              <Smartphone className="h-5 w-5 text-emerald-500" />
+            </div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase">Swipe</span>
+          </div>
+        </div>
+
+        <PaymentElement options={{ layout: 'tabs' }} />
+      </div>
+
       <div className="flex gap-3">
         <Button 
           type="button" 

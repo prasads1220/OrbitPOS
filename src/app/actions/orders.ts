@@ -123,20 +123,31 @@ export async function refundOrder(orderId: string, itemsToRefund: { id: string, 
       totalRefundAmount += orderItem.unit_price * itemRefund.quantity;
     }
 
-    // 3. Process Stripe Refund if applicable
+    // 3. Process Stripe Refund if applicable (Include Tax)
     if (order.payment_method === 'card' && order.stripe_payment_intent_id) {
-      console.log('Initiating real Stripe refund for:', order.stripe_payment_intent_id, 'Amount:', totalRefundAmount);
-      const stripeRes = await refundStripePayment(order.stripe_payment_intent_id, totalRefundAmount);
+      // Calculate tax rate used in original order
+      const preTaxTotal = order.total_amount - (order.tax_amount || 0);
+      const taxRate = preTaxTotal > 0 ? (order.tax_amount || 0) / preTaxTotal : 0;
+      
+      // Calculate total refund including tax
+      const totalRefundWithTax = totalRefundAmount * (1 + taxRate);
+      
+      console.log('Initiating real Stripe refund with Tax:', order.stripe_payment_intent_id, 'Amount:', totalRefundWithTax.toFixed(2));
+      const stripeRes = await refundStripePayment(order.stripe_payment_intent_id, totalRefundWithTax);
       
       if (!stripeRes.success) {
         console.error('CRITICAL: Stripe refund failed:', stripeRes.error);
-        throw new Error(`Stripe Refund Failed: ${stripeRes.error}. The money was NOT returned to the customer. Please check your Stripe Dashboard.`);
+        throw new Error(`Stripe Refund Failed: ${stripeRes.error}`);
       }
-      console.log('Stripe refund successful:', stripeRes.refundId);
     }
 
-    // 4. Update order status and refunded amount
-    const newRefundedAmount = (order.refunded_amount || 0) + totalRefundAmount;
+    // 4. Update order status and refunded amount (Internal records)
+    const preTaxTotal = order.total_amount - (order.tax_amount || 0);
+    const taxRate = preTaxTotal > 0 ? (order.tax_amount || 0) / preTaxTotal : 0;
+    const totalRefundWithTax = totalRefundAmount * (1 + taxRate);
+    
+    const newRefundedAmount = (order.refunded_amount || 0) + totalRefundWithTax;
+
     const isFullRefund = newRefundedAmount >= order.total_amount;
 
     const { error: updateError } = await supabase
