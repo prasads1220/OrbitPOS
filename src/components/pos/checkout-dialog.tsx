@@ -58,6 +58,10 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
   };
 
   const finalizeOrder = async () => {
+    if (!profile?.store_id) {
+      toast.error('Store ID not found. Please log in again.');
+      return;
+    }
     setStep('processing');
     try {
       const { data: order, error: orderError } = await supabase
@@ -67,6 +71,7 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
           tax_amount: tax,
           payment_method: method,
           payment_status: 'completed',
+          store_id: profile.store_id,
         })
         .select()
         .single();
@@ -79,6 +84,7 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
         quantity: item.quantity,
         unit_price: item.price,
         total_price: item.price * item.quantity,
+        store_id: profile.store_id,
       }));
 
       const { error: itemsError } = await supabase
@@ -100,6 +106,7 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
             product_id: item.id,
             change_amount: -item.quantity,
             reason: 'sale',
+            store_id: profile.store_id,
           });
       }
 
