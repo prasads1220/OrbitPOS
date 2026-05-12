@@ -155,10 +155,19 @@ export default function OrdersPage() {
 
   const calculateRefundTotal = () => {
     if (!selectedOrder) return 0;
-    return Object.entries(refundItems).reduce((sum, [id, qty]) => {
+    
+    // Calculate subtotal for items being refunded
+    const refundSubtotal = Object.entries(refundItems).reduce((sum, [id, qty]) => {
       const item = selectedOrder.order_items.find((oi: any) => oi.id === id);
       return sum + (item?.unit_price || 0) * qty;
     }, 0);
+
+    // Calculate tax rate from the original order
+    const originalSubtotal = selectedOrder.total_amount - (selectedOrder.tax_amount || 0);
+    const taxRate = originalSubtotal > 0 ? (selectedOrder.tax_amount || 0) / originalSubtotal : 0;
+    
+    // Total = Subtotal + Tax on that subtotal
+    return refundSubtotal * (1 + taxRate);
   };
 
   const downloadOrderReceipt = (order: any) => {
@@ -433,9 +442,10 @@ export default function OrdersPage() {
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500 font-medium">Tax</span>
                 <span className="font-bold text-gray-900">
-                  ${((selectedOrder?.order_items?.reduce((sum: number, item: any) => sum + (item.unit_price || 0) * (item.quantity - (item.refunded_quantity || 0)), 0) || 0) * 
-                    ((selectedOrder?.tax_amount || 0) / ((selectedOrder?.total_amount || 0) - (selectedOrder?.tax_amount || 0) || 1))
-                  ).toFixed(2)}
+                  ${(selectedOrder?.tax_amount ? (
+                    (selectedOrder?.order_items?.reduce((sum: number, item: any) => sum + (item.unit_price || 0) * (item.quantity - (item.refunded_quantity || 0)), 0) || 0) * 
+                    (selectedOrder.tax_amount / (selectedOrder.total_amount - selectedOrder.tax_amount || 1))
+                  ) : 0).toFixed(2)}
                 </span>
               </div>
               
@@ -584,7 +594,7 @@ export default function OrdersPage() {
 
             <div className="pt-4 border-t border-gray-50 flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Total Refund</p>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Total Refund (Inc. Tax)</p>
                 <p className="text-2xl font-black text-rose-500">${calculateRefundTotal().toFixed(2)}</p>
               </div>
               <div className="flex gap-3">
