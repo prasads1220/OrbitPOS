@@ -214,11 +214,18 @@ export default function ProductsPage() {
                 <TableRow key={product.id} className="border-gray-50 hover:bg-gray-50/50 group">
                   <TableCell className="pl-8">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-[#f5f5f7] flex items-center justify-center overflow-hidden border border-gray-50">
+                      <div 
+                        className="w-14 h-14 rounded-2xl bg-[#f5f5f7] flex items-center justify-center overflow-hidden border border-gray-100 cursor-zoom-in hover:shadow-md transition-all group/img"
+                        onClick={() => {
+                          if (product.image_url) {
+                            window.open(product.image_url, '_blank');
+                          }
+                        }}
+                      >
                         {product.image_url ? (
-                          <img src={product.image_url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                          <img src={product.image_url} alt="" className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-500" />
                         ) : (
-                          <Package className="h-6 w-6 text-gray-300" />
+                          <Package className="h-7 w-7 text-gray-300" />
                         )}
                       </div>
                       <div>

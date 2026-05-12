@@ -15,7 +15,11 @@ import {
   Search,
   DollarSign,
   Trash2,
-  LogOut
+  LogOut,
+  User,
+  ExternalLink,
+  Ban,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +41,14 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { createStore, createStoreAdmin, getAllStores, deleteStore } from '@/app/actions/super-admin';
+import { 
+  createStore, 
+  createStoreAdmin, 
+  getAllStores, 
+  deleteStore, 
+  updateStore, 
+  toggleStoreSuspension 
+} from '@/app/actions/super-admin';
 import { format } from 'date-fns';
 
 import { LoginForm } from '@/components/auth/login-form';
@@ -57,6 +68,7 @@ function SuperAdminContent() {
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [forceShow, setForceShow] = useState(false);
 
   // Form states
@@ -227,6 +239,34 @@ function SuperAdminContent() {
     setLoading(false);
   };
 
+  const handleToggleSuspension = async (store: any) => {
+    setLoading(true);
+    const res = await toggleStoreSuspension(store.id, !store.is_suspended);
+    if (res.success) {
+      toast.success(store.is_suspended ? 'Store resumed' : 'Store suspended');
+      fetchStores();
+    } else {
+      toast.error(res.error);
+    }
+    setLoading(false);
+  };
+
+  const handleUpdateStore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStore || !storeName) return;
+
+    setLoading(true);
+    const res = await updateStore(selectedStore.id, storeName);
+    if (res.success) {
+      toast.success('Store updated successfully');
+      setIsEditModalOpen(false);
+      fetchStores();
+    } else {
+      toast.error(res.error);
+    }
+    setLoading(false);
+  };
+
   const filteredStores = stores.filter(s => 
     s.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -253,6 +293,13 @@ function SuperAdminContent() {
           </div>
 
           <div className="flex items-center gap-4">
+            <Link href="/super-admin/profile">
+              <Button variant="outline" className="h-14 px-6 rounded-2xl border-gray-100 hover:bg-gray-50 font-bold transition-all">
+                <User className="mr-2 h-5 w-5 text-[#0071e3]" />
+                Admin Profile
+              </Button>
+            </Link>
+
             <Button 
               variant="ghost" 
               onClick={handleLogout}
@@ -329,15 +376,49 @@ function SuperAdminContent() {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-[#0071e3] transition-colors" />
-          <Input 
-            placeholder="Search stores..." 
-            className="pl-12 h-14 bg-white border-gray-100 rounded-2xl shadow-sm font-medium"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+        {/* Product Preview & Search */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden relative group">
+            <div className="p-8 pb-0">
+              <h3 className="text-xl font-bold text-black mb-1">OrbitPOS Infrastructure</h3>
+              <p className="text-sm text-gray-400 font-medium">Monitoring the latest platform builds and active deployments.</p>
+            </div>
+            <div className="relative mt-4 px-8 pb-8">
+              <div className="relative rounded-2xl overflow-hidden border border-gray-100 shadow-2xl">
+                <Image 
+                  src="/orbit_pos_preview.png" 
+                  alt="OrbitPOS Interface" 
+                  width={1200} 
+                  height={600} 
+                  className="w-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col justify-between h-full">
+              <div>
+                <h3 className="text-xl font-bold text-black mb-4">Quick Find</h3>
+                <div className="relative group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-[#0071e3] transition-colors" />
+                  <Input 
+                    placeholder="Search stores..." 
+                    className="pl-12 h-14 bg-[#f5f5f7] border-transparent rounded-2xl focus:bg-white focus:ring-2 focus:ring-[#0071e3]/10 font-bold"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="mt-8 p-6 bg-blue-50 rounded-3xl border border-blue-100/50">
+                <p className="text-[11px] font-bold text-[#0071e3] uppercase tracking-widest mb-2">Pro Tip</p>
+                <p className="text-sm text-blue-800 font-medium leading-relaxed">
+                  You can manage store settings, reset admin passwords, and monitor real-time sync status from the action menu.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Stores Table */}
@@ -387,17 +468,48 @@ function SuperAdminContent() {
                     </TableCell>
                     <TableCell className="text-right pr-8">
                       <div className="flex items-center justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          className="text-[#0071e3] font-bold text-[13px] hover:bg-blue-50 rounded-xl px-4"
-                          onClick={() => {
-                            setSelectedStore(store);
-                            setIsAdminModalOpen(true);
-                          }}
-                        >
-                          <UserPlus className="mr-2 h-4 w-4" />
-                          Add Admin
-                        </Button>
+                        {!store.admin ? (
+                          <Button 
+                            variant="ghost" 
+                            className="text-[#0071e3] font-bold text-[13px] hover:bg-blue-50 rounded-xl px-4"
+                            onClick={() => {
+                              setSelectedStore(store);
+                              setIsAdminModalOpen(true);
+                            }}
+                          >
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Add Admin
+                          </Button>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Button 
+                              variant="ghost" 
+                              className="text-gray-600 font-bold text-[13px] hover:bg-gray-100 rounded-xl px-4"
+                              onClick={() => {
+                                setSelectedStore(store);
+                                setStoreName(store.name);
+                                setIsEditModalOpen(true);
+                              }}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              className={cn(
+                                "font-bold text-[13px] rounded-xl px-4",
+                                store.is_suspended ? "text-emerald-600 hover:bg-emerald-50" : "text-amber-600 hover:bg-amber-50"
+                              )}
+                              onClick={() => handleToggleSuspension(store)}
+                            >
+                              {store.is_suspended ? (
+                                <><CheckCircle2 className="mr-2 h-4 w-4" /> Resume</>
+                              ) : (
+                                <><Ban className="mr-2 h-4 w-4" /> Suspend</>
+                              )}
+                            </Button>
+                          </div>
+                        )}
                         <Button 
                           variant="ghost" 
                           className="text-red-500 hover:bg-red-50 rounded-xl h-10 w-10 p-0"
@@ -460,6 +572,34 @@ function SuperAdminContent() {
               </div>
               <Button type="submit" disabled={loading} className="w-full h-14 bg-black rounded-2xl font-bold shadow-xl shadow-black/10">
                 {loading ? <RefreshCw className="animate-spin h-5 w-5" /> : 'Provision Admin Account'}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Edit Store Dialog */}
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContent className="sm:max-w-[440px] rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden">
+            <div className="p-10 bg-[#fbfbfd] border-b border-gray-50">
+              <DialogHeader>
+                <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center mb-4">
+                  <Building2 className="text-white h-6 w-6" />
+                </div>
+                <DialogTitle className="text-2xl font-black text-black">Edit Store</DialogTitle>
+              </DialogHeader>
+            </div>
+            <form onSubmit={handleUpdateStore} className="p-10 space-y-6 bg-white">
+              <div className="space-y-2">
+                <Label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Store Name</Label>
+                <Input 
+                  placeholder="e.g. Apple Store Fifth Ave" 
+                  className="h-14 bg-[#f5f5f7] border-transparent rounded-2xl focus:bg-white focus:ring-2 focus:ring-[#0071e3]/10 font-bold"
+                  value={storeName}
+                  onChange={e => setStoreName(e.target.value)}
+                />
+              </div>
+              <Button type="submit" disabled={loading} className="w-full h-14 bg-black rounded-2xl font-bold shadow-xl shadow-black/10">
+                {loading ? <RefreshCw className="animate-spin h-5 w-5" /> : 'Update Store'}
               </Button>
             </form>
           </DialogContent>

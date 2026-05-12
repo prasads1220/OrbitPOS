@@ -118,13 +118,60 @@ export async function getAllStores() {
   try {
     const { data, error } = await getSupabaseAdmin()
       .from('stores')
-      .select('*')
+      .select(`
+        *,
+        profiles!profiles_store_id_fkey(count)
+      `)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return { success: true, stores: data };
+    
+    // Also fetch the admin for each store
+    const storesWithAdmins = await Promise.all((data || []).map(async (store) => {
+      const { data: admins } = await getSupabaseAdmin()
+        .from('profiles')
+        .select('id, email, full_name')
+        .eq('store_id', store.id)
+        .eq('role', 'admin')
+        .limit(1);
+      
+      return { ...store, admin: admins?.[0] || null };
+    }));
+
+    return { success: true, stores: storesWithAdmins };
   } catch (error: any) {
     console.error('Error fetching stores:', error);
     return { error: error.message || 'Failed to fetch stores' };
   }
 }
+
+export async function updateStore(id: string, name: string) {
+  try {
+    const { error } = await getSupabaseAdmin()
+      .from('stores')
+      .update({ name })
+      .eq('id', id);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error updating store:', error);
+    return { error: error.message || 'Failed to update store' };
+  }
+}
+
+export async function toggleStoreSuspension(id: string, isSuspended: boolean) {
+  try {
+    const { error } = await getSupabaseAdmin()
+      .from('stores')
+      .update({ is_suspended: isSuspended })
+      .eq('id', id);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error toggling suspension:', error);
+    return { error: error.message || 'Failed to toggle suspension' };
+  }
+}
+
