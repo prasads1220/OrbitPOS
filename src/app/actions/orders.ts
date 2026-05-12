@@ -125,12 +125,14 @@ export async function refundOrder(orderId: string, itemsToRefund: { id: string, 
 
     // 3. Process Stripe Refund if applicable
     if (order.payment_method === 'card' && order.stripe_payment_intent_id) {
+      console.log('Initiating real Stripe refund for:', order.stripe_payment_intent_id, 'Amount:', totalRefundAmount);
       const stripeRes = await refundStripePayment(order.stripe_payment_intent_id, totalRefundAmount);
+      
       if (!stripeRes.success) {
-        console.warn('Stripe refund failed but DB updated:', stripeRes.error);
-        // We continue because DB logic is primary for inventory, 
-        // but in a production app you might want to rollback or flag this.
+        console.error('CRITICAL: Stripe refund failed:', stripeRes.error);
+        throw new Error(`Stripe Refund Failed: ${stripeRes.error}. The money was NOT returned to the customer. Please check your Stripe Dashboard.`);
       }
+      console.log('Stripe refund successful:', stripeRes.refundId);
     }
 
     // 4. Update order status and refunded amount

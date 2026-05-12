@@ -27,13 +27,15 @@ export async function createPaymentIntent(amount: number, storeName: string) {
 
 export async function refundStripePayment(paymentIntentId: string, amount?: number) {
   try {
+    console.log('Stripe SDK: Attempting refund for PI:', paymentIntentId);
     const refund = await stripe.refunds.create({
       payment_intent: paymentIntentId,
       amount: amount ? Math.round(amount * 100) : undefined,
     });
+    console.log('Stripe SDK: Refund success:', refund.id);
     return { success: true, refundId: refund.id };
   } catch (error: any) {
-    console.error('Stripe refund error:', error);
+    console.error('Stripe SDK Error during refund:', error.message, error.type);
     return { success: false, error: error.message };
   }
 }
