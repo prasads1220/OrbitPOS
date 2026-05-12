@@ -19,7 +19,8 @@ import {
   User,
   ExternalLink,
   Ban,
-  CheckCircle2
+  CheckCircle2,
+  Pencil
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +55,7 @@ import { format } from 'date-fns';
 import { LoginForm } from '@/components/auth/login-form';
 import { useAuthStore } from '@/store/useAuthStore';
 import { ShieldAlert, Loader2, Lock, ArrowRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
