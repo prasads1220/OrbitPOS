@@ -16,8 +16,19 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "OrbitPOS - Modern Point of Sale",
-  description: "A professional, cloud-based POS system for retail and business.",
+  title: "OrbitPOS | Modern Retail & Business POS",
+  description: "A professional, cloud-based Point of Sale system with real-time Stripe payments, inventory management, and financial reporting.",
+  openGraph: {
+    title: "OrbitPOS | Modern Retail & Business POS",
+    description: "Secure, fast, and beautiful cloud-based POS system for modern businesses.",
+    type: "website",
+    siteName: "OrbitPOS",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "OrbitPOS | Modern Retail & Business POS",
+    description: "The complete retail engine for your business.",
+  },
 };
 
 export const viewport = {
