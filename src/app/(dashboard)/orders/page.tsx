@@ -10,7 +10,11 @@ import {
   RefreshCw,
   ShoppingBag,
   CreditCard,
-  Banknote
+  Banknote,
+  ShieldAlert,
+  Undo2,
+  RotateCcw,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +37,8 @@ import { format } from 'date-fns';
 import { downloadCSV } from '@/lib/export';
 
 import { useAuthStore } from '@/store/useAuthStore';
+import { voidOrder, refundOrder } from '@/app/actions/orders';
+import { toast } from 'sonner';
 
 export default function OrdersPage() {
   const { profile } = useAuthStore();
@@ -40,6 +46,9 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
+  const [refundReason, setRefundReason] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     if (profile?.store_id) {
@@ -95,6 +104,38 @@ export default function OrdersPage() {
       'Total Amount': o.total_amount.toFixed(2)
     }));
     downloadCSV(data, 'orders_export.csv');
+  };
+
+  const handleVoidOrder = async (orderId: string) => {
+    if (!confirm('Are you sure you want to VOID this transaction? This will restore stock and mark the order as voided.')) return;
+    
+    setActionLoading(true);
+    const res = await voidOrder(orderId);
+    if (res.success) {
+      toast.success('Transaction voided successfully');
+      setSelectedOrder(null);
+      fetchOrders();
+    } else {
+      toast.error(res.error);
+    }
+    setActionLoading(false);
+  };
+
+  const handleRefundOrder = async () => {
+    if (!selectedOrder || !refundReason) return;
+    
+    setActionLoading(true);
+    const res = await refundOrder(selectedOrder.id, refundReason);
+    if (res.success) {
+      toast.success('Transaction refunded successfully');
+      setIsRefundDialogOpen(false);
+      setRefundReason('');
+      setSelectedOrder(null);
+      fetchOrders();
+    } else {
+      toast.error(res.error);
+    }
+    setActionLoading(false);
   };
 
   return (
@@ -192,8 +233,10 @@ export default function OrdersPage() {
                         </div>
                         {order.payment_status === 'completed' ? (
                           <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold w-fit text-[10px]">Paid</Badge>
+                        ) : order.payment_status === 'voided' ? (
+                          <Badge className="bg-gray-100 text-gray-500 border-gray-200 font-bold w-fit text-[10px]">Voided</Badge>
                         ) : (
-                          <Badge className="bg-rose-50 text-rose-600 border-rose-100 font-bold w-fit text-[10px]">{order.payment_status}</Badge>
+                          <Badge className="bg-rose-50 text-rose-600 border-rose-100 font-bold w-fit text-[10px] capitalize">{order.payment_status}</Badge>
                         )}
                       </div>
                     </TableCell>
@@ -263,6 +306,85 @@ export default function OrdersPage() {
             <div className="bg-gray-50 rounded-2xl p-4 flex items-center justify-center gap-2">
               <span className="text-gray-500 font-medium text-[13px]">Paid with</span>
               <span className="font-bold text-black uppercase tracking-wider text-[13px]">{selectedOrder?.payment_method}</span>
+            </div>
+
+            {selectedOrder?.payment_status === 'refunded' && (
+              <div className="bg-rose-50 rounded-2xl p-4 space-y-1 border border-rose-100">
+                <div className="flex items-center gap-2 text-rose-600">
+                  <RotateCcw className="h-4 w-4" />
+                  <span className="font-bold text-[13px]">Refunded Transaction</span>
+                </div>
+                <p className="text-rose-500 text-[12px] font-medium leading-relaxed italic">
+                  "{selectedOrder?.refund_reason}"
+                </p>
+              </div>
+            )}
+
+            {selectedOrder?.payment_status === 'voided' && (
+              <div className="bg-gray-100 rounded-2xl p-4 flex items-center justify-center gap-2 border border-gray-200">
+                <ShieldAlert className="h-4 w-4 text-gray-400" />
+                <span className="font-bold text-gray-500 text-[13px]">This transaction was voided</span>
+              </div>
+            )}
+
+            {selectedOrder?.payment_status === 'completed' && (
+              <div className="grid grid-cols-2 gap-3 pt-4">
+                <Button 
+                  variant="outline" 
+                  disabled={actionLoading}
+                  className="rounded-2xl h-12 border-gray-100 text-gray-500 font-bold hover:bg-gray-50 hover:text-black transition-all"
+                  onClick={() => handleVoidOrder(selectedOrder.id)}
+                >
+                  <Undo2 className="mr-2 h-4 w-4" />
+                  Void Order
+                </Button>
+                <Button 
+                  disabled={actionLoading}
+                  className="rounded-2xl h-12 bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold transition-all"
+                  onClick={() => setIsRefundDialogOpen(true)}
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Refund Items
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Refund Reason Dialog */}
+      <Dialog open={isRefundDialogOpen} onOpenChange={setIsRefundDialogOpen}>
+        <DialogContent className="max-w-[400px] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
+          <div className="p-8 bg-[#fbfbfd] border-b border-gray-50">
+            <DialogHeader>
+              <div className="w-12 h-12 bg-rose-50 rounded-xl flex items-center justify-center mb-4">
+                <RotateCcw className="text-rose-600 h-6 w-6" />
+              </div>
+              <DialogTitle className="text-2xl font-black text-black">Refund Transaction</DialogTitle>
+              <p className="text-gray-400 font-medium text-[13px] mt-1">Please provide a reason for the return.</p>
+            </DialogHeader>
+          </div>
+          <div className="p-8 space-y-6 bg-white">
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Reason for Refund</label>
+              <Input 
+                placeholder="e.g. Defective item, Customer changed mind"
+                className="h-14 bg-[#f5f5f7] border-transparent rounded-2xl focus:bg-white focus:ring-2 focus:ring-[#0071e3]/10 font-bold"
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button variant="ghost" className="flex-1 rounded-2xl h-14 font-bold text-gray-400" onClick={() => setIsRefundDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                disabled={!refundReason || actionLoading}
+                className="flex-[2] h-14 bg-black hover:bg-gray-800 text-white rounded-2xl font-bold shadow-xl shadow-black/10"
+                onClick={handleRefundOrder}
+              >
+                {actionLoading ? <RefreshCw className="animate-spin h-5 w-5" /> : 'Confirm Refund'}
+              </Button>
             </div>
           </div>
         </DialogContent>
