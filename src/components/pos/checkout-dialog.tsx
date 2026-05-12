@@ -9,7 +9,6 @@ import {
   Banknote, 
   Loader2, 
   Receipt,
-  Mail,
   Download,
   X,
   ArrowRight,
@@ -28,10 +27,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
+import { createPaymentIntent } from '@/app/actions/stripe';
+import StripePayment from './stripe-payment';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
 
-type CheckoutStep = 'selection' | 'cash-input' | 'card-simulation' | 'processing' | 'success' | 'failed';
+type CheckoutStep = 'selection' | 'cash-input' | 'card-payment' | 'processing' | 'success' | 'failed';
 
 export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
   const { profile } = useAuthStore();
@@ -41,6 +42,9 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
   const [cashTendered, setCashTendered] = useState<string>('');
   const [orderId, setOrderId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState('');
+  const [stripeIntentId, setStripeIntentId] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -49,6 +53,8 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
         setStep('selection');
         setCashTendered('');
         setError(null);
+        setClientSecret('');
+        setStripeIntentId('');
       }, 300);
     }
   }, [open]);
@@ -74,6 +80,7 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
           payment_method: method,
           payment_status: 'completed',
           store_id: profile.store_id,
+          stripe_payment_intent_id: method === 'card' ? stripeIntentId : null,
         })
         .select()
         .single();
@@ -122,23 +129,21 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
     }
   };
 
-  const startCardSimulation = () => {
-    setStep('card-simulation');
-  };
-
-  const simulateProcessing = () => {
-    setStep('processing');
-    // 90% success rate for simulation
-    const isSuccess = Math.random() > 0.1;
-    
-    setTimeout(() => {
-      if (isSuccess) {
-        finalizeOrder();
-      } else {
-        setError('Card declined by issuer. Please try another card or payment method.');
-        setStep('failed');
+  const handleMethodContinue = async () => {
+    if (method === 'cash') {
+      setStep('cash-input');
+    } else {
+      try {
+        setLoading(true);
+        const res = await createPaymentIntent(total, profile?.store_name || 'OrbitPOS Store');
+        setClientSecret(res.clientSecret || '');
+        setStep('card-payment');
+      } catch (err: any) {
+        toast.error('Could not initialize card payment: ' + err.message);
+      } finally {
+        setLoading(false);
       }
-    }, 2500);
+    }
   };
 
   const downloadReceipt = () => {
@@ -213,6 +218,11 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
     onOpenChange(false);
   };
 
+  const handleStripeSuccess = (intentId: string) => {
+    setStripeIntentId(intentId);
+    finalizeOrder();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl bg-white">
@@ -285,11 +295,11 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
               </div>
 
               <Button 
+                disabled={loading}
                 className="w-full h-16 rounded-2xl bg-black hover:bg-gray-800 text-white font-black text-lg shadow-xl shadow-black/10 mt-auto"
-                onClick={() => method === 'cash' ? setStep('cash-input') : startCardSimulation()}
+                onClick={handleMethodContinue}
               >
-                Continue to {method === 'cash' ? 'Cash' : 'Card'}
-                <ArrowRight className="ml-2 h-5 w-5" />
+                {loading ? <Loader2 className="animate-spin" /> : <>Continue to {method === 'cash' ? 'Cash' : 'Card'}<ArrowRight className="ml-2 h-5 w-5" /></>}
               </Button>
             </div>
           )}
@@ -352,43 +362,13 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
             </div>
           )}
 
-          {step === 'card-simulation' && (
-            <div className="flex-1 flex flex-col items-center justify-center py-10 space-y-10 animate-in fade-in zoom-in-95 duration-500">
-              <div className="w-32 h-32 bg-blue-50 rounded-[2.5rem] flex items-center justify-center relative">
-                <div className="absolute inset-0 bg-blue-500/10 rounded-[2.5rem] animate-ping duration-[2000ms]" />
-                <CreditCard className="h-12 w-12 text-[#0071e3] relative" />
-              </div>
-              
-              <div className="text-center space-y-2">
-                <h3 className="text-2xl font-black text-black">Ready to Pay</h3>
-                <p className="text-gray-400 font-medium">Please Insert, Tap or Swipe Card</p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-6 w-full">
-                <button onClick={simulateProcessing} className="flex flex-col items-center gap-3 p-6 rounded-3xl bg-gray-50 hover:bg-white hover:shadow-xl transition-all border border-transparent hover:border-gray-100 group">
-                  <div className="p-3 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
-                    <Smartphone className="h-6 w-6 text-gray-400" />
-                  </div>
-                  <span className="font-bold text-[13px] text-gray-500">Tap</span>
-                </button>
-                <button onClick={simulateProcessing} className="flex flex-col items-center gap-3 p-6 rounded-3xl bg-gray-50 hover:bg-white hover:shadow-xl transition-all border border-transparent hover:border-gray-100 group">
-                  <div className="p-3 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
-                    <Wallet className="h-6 w-6 text-gray-400" />
-                  </div>
-                  <span className="font-bold text-[13px] text-gray-500">Insert</span>
-                </button>
-                <button onClick={simulateProcessing} className="flex flex-col items-center gap-3 p-6 rounded-3xl bg-gray-50 hover:bg-white hover:shadow-xl transition-all border border-transparent hover:border-gray-100 group">
-                  <div className="p-3 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
-                    <CreditCard className="h-6 w-6 text-gray-400" />
-                  </div>
-                  <span className="font-bold text-[13px] text-gray-500">Swipe</span>
-                </button>
-              </div>
-
-              <Button variant="ghost" className="font-bold text-gray-300" onClick={() => setStep('selection')}>
-                Cancel Transaction
-              </Button>
-            </div>
+          {step === 'card-payment' && clientSecret && (
+            <StripePayment 
+              clientSecret={clientSecret} 
+              amount={total} 
+              onSuccess={handleStripeSuccess} 
+              onCancel={() => setStep('selection')} 
+            />
           )}
 
           {step === 'processing' && (
@@ -398,8 +378,8 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
                 <Wifi className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-[#0071e3] animate-pulse" />
               </div>
               <div className="text-center">
-                <h3 className="text-xl font-black text-black">Processing Payment</h3>
-                <p className="text-gray-400 font-medium">Communicating with bank terminal...</p>
+                <h3 className="text-xl font-black text-black">Processing Transaction</h3>
+                <p className="text-gray-400 font-medium">Securing payment with bank...</p>
               </div>
             </div>
           )}
@@ -441,30 +421,18 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
               <div className="w-24 h-24 bg-rose-50 rounded-[2rem] flex items-center justify-center mb-8">
                 <AlertCircle className="h-12 w-12 text-rose-500" />
               </div>
-              <h2 className="text-3xl font-black text-black mb-3 tracking-tight">Payment Declined</h2>
-              <p className="text-rose-500 font-medium mb-10 leading-relaxed text-center bg-rose-50 p-4 rounded-2xl border border-rose-100">
-                {error || 'Transaction failed. Please try again.'}
+              <h2 className="text-2xl font-black text-black mb-2">Payment Failed</h2>
+              <p className="text-gray-400 font-medium mb-10 text-center max-w-[300px]">
+                {error || 'An unknown error occurred during processing.'}
               </p>
-              
-              <div className="grid grid-cols-2 gap-4 w-full">
-                <Button 
-                  variant="outline" 
-                  className="h-14 rounded-2xl border-gray-100 text-black font-bold text-[15px]" 
-                  onClick={() => setStep('selection')}
-                >
-                  Other Method
-                </Button>
-                <Button 
-                  className="h-14 rounded-2xl bg-black hover:bg-gray-800 text-white font-bold text-[15px]" 
-                  onClick={() => method === 'cash' ? finalizeOrder() : startCardSimulation()}
-                >
-                  <RefreshCw className="mr-2 h-5 w-5" />
-                  Retry
-                </Button>
-              </div>
+              <Button 
+                className="h-14 w-full rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold"
+                onClick={() => setStep('selection')}
+              >
+                Try Different Method
+              </Button>
             </div>
           )}
-
         </div>
       </DialogContent>
     </Dialog>

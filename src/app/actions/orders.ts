@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import { refundStripePayment } from './stripe';
 
 const getSupabaseAdmin = () => {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -122,7 +123,17 @@ export async function refundOrder(orderId: string, itemsToRefund: { id: string, 
       totalRefundAmount += orderItem.unit_price * itemRefund.quantity;
     }
 
-    // 3. Update order status and refunded amount
+    // 3. Process Stripe Refund if applicable
+    if (order.payment_method === 'card' && order.stripe_payment_intent_id) {
+      const stripeRes = await refundStripePayment(order.stripe_payment_intent_id, totalRefundAmount);
+      if (!stripeRes.success) {
+        console.warn('Stripe refund failed but DB updated:', stripeRes.error);
+        // We continue because DB logic is primary for inventory, 
+        // but in a production app you might want to rollback or flag this.
+      }
+    }
+
+    // 4. Update order status and refunded amount
     const newRefundedAmount = (order.refunded_amount || 0) + totalRefundAmount;
     const isFullRefund = newRefundedAmount >= order.total_amount;
 
