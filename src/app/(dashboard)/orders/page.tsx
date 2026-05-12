@@ -209,12 +209,19 @@ export default function OrdersPage() {
     y += 5;
     doc.line(130, y, 190, y);
     y += 10;
-    const subtotal = order.total_amount - (order.tax_amount || 0);
+
+    // Calculate remaining totals
+    const originalSubtotal = order.total_amount - (order.tax_amount || 0);
+    const taxRate = (order.tax_amount || 0) / originalSubtotal;
+    const remainingTotal = order.total_amount - (order.refunded_amount || 0);
+    const remainingSubtotal = remainingTotal / (1 + taxRate);
+    const remainingTax = remainingTotal - remainingSubtotal;
+
     doc.text('Subtotal:', 130, y);
-    doc.text(`$${subtotal.toFixed(2)}`, 190, y, { align: 'right' });
+    doc.text(`$${remainingSubtotal.toFixed(2)}`, 190, y, { align: 'right' });
     y += 7;
     doc.text('Tax:', 130, y);
-    doc.text(`$${(order.tax_amount || 0).toFixed(2)}`, 190, y, { align: 'right' });
+    doc.text(`$${remainingTax.toFixed(2)}`, 190, y, { align: 'right' });
     
     if (order.refunded_amount > 0) {
       y += 7;
@@ -227,9 +234,9 @@ export default function OrdersPage() {
     y += 10;
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL PAID:', 130, y);
-    const finalTotal = order.total_amount - (order.refunded_amount || 0);
-    doc.text(`$${finalTotal.toFixed(2)}`, 190, y, { align: 'right' });
+    doc.text('FINAL TOTAL:', 130, y);
+    doc.text(`$${remainingTotal.toFixed(2)}`, 190, y, { align: 'right' });
+
 
     if (order.refund_reason) {
       y += 20;
@@ -413,11 +420,22 @@ export default function OrdersPage() {
             <div className="pt-6 border-t border-gray-100 space-y-3">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500 font-medium">Subtotal</span>
-                <span className="font-bold text-gray-900">${((selectedOrder?.total_amount || 0) - (selectedOrder?.tax_amount || 0)).toFixed(2)}</span>
+                <span className="font-bold text-gray-900">
+                  ${(
+                    ((selectedOrder?.total_amount || 0) - (selectedOrder?.refunded_amount || 0)) / 
+                    (1 + (selectedOrder?.tax_amount || 0) / ((selectedOrder?.total_amount || 0) - (selectedOrder?.tax_amount || 0) || 1))
+                  ).toFixed(2)}
+                </span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500 font-medium">Tax</span>
-                <span className="font-bold text-gray-900">${(selectedOrder?.tax_amount || 0).toFixed(2)}</span>
+                <span className="font-bold text-gray-900">
+                  ${(
+                    ((selectedOrder?.total_amount || 0) - (selectedOrder?.refunded_amount || 0)) - 
+                    (((selectedOrder?.total_amount || 0) - (selectedOrder?.refunded_amount || 0)) / 
+                    (1 + (selectedOrder?.tax_amount || 0) / ((selectedOrder?.total_amount || 0) - (selectedOrder?.tax_amount || 0) || 1)))
+                  ).toFixed(2)}
+                </span>
               </div>
               
               {selectedOrder?.refunded_amount > 0 && (
