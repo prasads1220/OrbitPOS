@@ -133,7 +133,7 @@ export async function refundOrder(orderId: string, itemsToRefund: { id: string, 
       const totalRefundWithTax = totalRefundAmount * (1 + taxRate);
       
       console.log('Initiating real Stripe refund with Tax:', order.stripe_payment_intent_id, 'Amount:', totalRefundWithTax.toFixed(2));
-      const stripeRes = await refundStripePayment(order.stripe_payment_intent_id, totalRefundWithTax);
+      const stripeRes = await refundStripePayment(order.store_id, order.stripe_payment_intent_id, totalRefundWithTax);
       
       if (!stripeRes.success) {
         console.error('CRITICAL: Stripe refund failed:', stripeRes.error);

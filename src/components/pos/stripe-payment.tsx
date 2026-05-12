@@ -105,7 +105,9 @@ function CheckoutForm({ amount, onReady, onCancel }: { amount: number, onReady: 
   );
 }
 
-export default function StripePayment({ clientSecret, amount, onSuccess, onCancel }: { clientSecret: string, amount: number, onSuccess: (id: string) => void, onCancel: () => void }) {
+export default function StripePayment({ publishableKey, clientSecret, amount, onSuccess, onCancel }: { publishableKey: string, clientSecret: string, amount: number, onSuccess: (id: string) => void, onCancel: () => void }) {
+  const stripePromise = loadStripe(publishableKey);
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <Elements stripe={stripePromise} options={{ clientSecret }}>

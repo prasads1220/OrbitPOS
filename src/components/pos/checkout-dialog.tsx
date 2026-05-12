@@ -27,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
-import { createPaymentIntent } from '@/app/actions/stripe';
+import { createPaymentIntent, getStorePublishableKey } from '@/app/actions/stripe';
 import StripePayment from './stripe-payment';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -43,6 +43,7 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
   const [orderId, setOrderId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState('');
+  const [publishableKey, setPublishableKey] = useState('');
   const [stripeIntentId, setStripeIntentId] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -135,8 +136,15 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
     } else {
       try {
         setLoading(true);
-        const res = await createPaymentIntent(total, profile?.store_name || 'OrbitPOS Store');
-        setClientSecret(res.clientSecret || '');
+        if (!profile?.store_id) throw new Error('Store ID missing');
+        
+        const [intentRes, keyRes] = await Promise.all([
+          createPaymentIntent(total, profile.store_id, profile.store_name || 'OrbitPOS Store'),
+          getStorePublishableKey(profile.store_id)
+        ]);
+
+        setClientSecret(intentRes.clientSecret || '');
+        setPublishableKey(keyRes);
         setStep('card-payment');
       } catch (err: any) {
         toast.error('Could not initialize card payment: ' + err.message);
@@ -362,8 +370,9 @@ export function CheckoutDialog({ open, onOpenChange }: { open: boolean, onOpenCh
             </div>
           )}
 
-          {step === 'card-payment' && clientSecret && (
+          {step === 'card-payment' && clientSecret && publishableKey && (
             <StripePayment 
+              publishableKey={publishableKey}
               clientSecret={clientSecret} 
               amount={total} 
               onSuccess={handleStripeSuccess} 
