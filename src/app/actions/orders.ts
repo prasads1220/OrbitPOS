@@ -73,7 +73,7 @@ export async function voidOrder(orderId: string) {
   }
 }
 
-export async function refundOrder(orderId: string, reason: string) {
+export async function refundOrder(orderId: string, itemsToRefund: { id: string, quantity: number }[], reason: string) {
   const supabase = getSupabaseAdmin();
   
   try {
@@ -85,37 +85,58 @@ export async function refundOrder(orderId: string, reason: string) {
       .single();
 
     if (orderError) throw orderError;
-    if (order.payment_status === 'refunded') throw new Error('Order is already refunded');
 
-    // 2. Mark as refunded
+    let totalRefundAmount = 0;
+
+    // 2. Process each item to refund
+    for (const itemRefund of itemsToRefund) {
+      const orderItem = order.order_items.find((oi: any) => oi.id === itemRefund.id);
+      if (!orderItem) continue;
+
+      const remainingQty = orderItem.quantity - (orderItem.refunded_quantity || 0);
+      if (itemRefund.quantity > remainingQty) throw new Error(`Cannot refund more than remaining quantity for ${orderItem.product_id}`);
+
+      // Update order item refunded quantity
+      const { error: itemUpdateError } = await supabase
+        .from('order_items')
+        .update({ refunded_quantity: (orderItem.refunded_quantity || 0) + itemRefund.quantity })
+        .eq('id', orderItem.id);
+
+      if (itemUpdateError) throw itemUpdateError;
+
+      // Restore inventory
+      const { data: product } = await supabase.from('products').select('stock_quantity').eq('id', orderItem.product_id).single();
+      await supabase
+        .from('products')
+        .update({ stock_quantity: (product?.stock_quantity || 0) + itemRefund.quantity })
+        .eq('id', orderItem.product_id);
+
+      // Log inventory change
+      await supabase.from('inventory_logs').insert({
+        product_id: orderItem.product_id,
+        store_id: order.store_id,
+        change_amount: itemRefund.quantity,
+        reason: 'refund'
+      });
+
+      totalRefundAmount += orderItem.unit_price * itemRefund.quantity;
+    }
+
+    // 3. Update order status and refunded amount
+    const newRefundedAmount = (order.refunded_amount || 0) + totalRefundAmount;
+    const isFullRefund = newRefundedAmount >= order.total_amount;
+
     const { error: updateError } = await supabase
       .from('orders')
       .update({ 
-        payment_status: 'refunded',
+        payment_status: isFullRefund ? 'refunded' : 'partially_refunded',
         refunded_at: new Date().toISOString(),
-        refund_reason: reason
+        refund_reason: reason,
+        refunded_amount: newRefundedAmount
       })
       .eq('id', orderId);
 
     if (updateError) throw updateError;
-
-    // 3. Restore inventory
-    for (const item of order.order_items) {
-      // Increment stock
-      const { data: product } = await supabase.from('products').select('stock_quantity').eq('id', item.product_id).single();
-      await supabase
-        .from('products')
-        .update({ stock_quantity: (product?.stock_quantity || 0) + item.quantity })
-        .eq('id', item.product_id);
-
-      // Log inventory change
-      await supabase.from('inventory_logs').insert({
-        product_id: item.product_id,
-        store_id: order.store_id,
-        change_amount: item.quantity,
-        reason: 'refund'
-      });
-    }
 
     revalidatePath('/orders');
     revalidatePath('/dashboard');
@@ -125,3 +146,4 @@ export async function refundOrder(orderId: string, reason: string) {
     return { success: false, error: error.message };
   }
 }
+

@@ -48,6 +48,7 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
   const [refundReason, setRefundReason] = useState('');
+  const [refundItems, setRefundItems] = useState<Record<string, number>>({});
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
@@ -71,8 +72,11 @@ export default function OrdersPage() {
           created_at,
           profiles ( full_name ),
           order_items (
+            id,
             quantity,
+            refunded_quantity,
             total_price,
+            unit_price,
             products ( name, price, sku )
           )
         `)
@@ -124,18 +128,36 @@ export default function OrdersPage() {
   const handleRefundOrder = async () => {
     if (!selectedOrder || !refundReason) return;
     
+    const itemsToRefund = Object.entries(refundItems)
+      .filter(([_, qty]) => qty > 0)
+      .map(([id, qty]) => ({ id, quantity: qty }));
+
+    if (itemsToRefund.length === 0) {
+      toast.error('Please select at least one item to refund');
+      return;
+    }
+    
     setActionLoading(true);
-    const res = await refundOrder(selectedOrder.id, refundReason);
+    const res = await refundOrder(selectedOrder.id, itemsToRefund, refundReason);
     if (res.success) {
-      toast.success('Transaction refunded successfully');
+      toast.success('Refund processed successfully');
       setIsRefundDialogOpen(false);
       setRefundReason('');
+      setRefundItems({});
       setSelectedOrder(null);
       fetchOrders();
     } else {
       toast.error(res.error);
     }
     setActionLoading(false);
+  };
+
+  const calculateRefundTotal = () => {
+    if (!selectedOrder) return 0;
+    return Object.entries(refundItems).reduce((sum, [id, qty]) => {
+      const item = selectedOrder.order_items.find((oi: any) => oi.id === id);
+      return sum + (item?.unit_price || 0) * qty;
+    }, 0);
   };
 
   return (
@@ -244,6 +266,9 @@ export default function OrdersPage() {
                       {totalItems} items
                     </TableCell>
                     <TableCell className="text-right font-black text-black text-lg">
+                      {order.refunded_amount > 0 && (
+                        <p className="text-[10px] text-rose-500 font-bold -mb-1">-${order.refunded_amount.toFixed(2)}</p>
+                      )}
                       ${order.total_amount.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right pr-8">
@@ -308,11 +333,14 @@ export default function OrdersPage() {
               <span className="font-bold text-black uppercase tracking-wider text-[13px]">{selectedOrder?.payment_method}</span>
             </div>
 
-            {selectedOrder?.payment_status === 'refunded' && (
-              <div className="bg-rose-50 rounded-2xl p-4 space-y-1 border border-rose-100">
-                <div className="flex items-center gap-2 text-rose-600">
-                  <RotateCcw className="h-4 w-4" />
-                  <span className="font-bold text-[13px]">Refunded Transaction</span>
+            {(selectedOrder?.payment_status === 'refunded' || selectedOrder?.payment_status === 'partially_refunded') && (
+              <div className="bg-rose-50 rounded-2xl p-4 space-y-2 border border-rose-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-rose-600">
+                    <RotateCcw className="h-4 w-4" />
+                    <span className="font-bold text-[13px]">{selectedOrder?.payment_status === 'refunded' ? 'Fully Refunded' : 'Partially Refunded'}</span>
+                  </div>
+                  <span className="font-black text-rose-600">-${selectedOrder?.refunded_amount?.toFixed(2)}</span>
                 </div>
                 <p className="text-rose-500 text-[12px] font-medium leading-relaxed italic">
                   "{selectedOrder?.refund_reason}"
@@ -327,7 +355,7 @@ export default function OrdersPage() {
               </div>
             )}
 
-            {selectedOrder?.payment_status === 'completed' && (
+            {(selectedOrder?.payment_status === 'completed' || selectedOrder?.payment_status === 'partially_refunded') && (
               <div className="grid grid-cols-2 gap-3 pt-4">
                 <Button 
                   variant="outline" 
@@ -341,7 +369,13 @@ export default function OrdersPage() {
                 <Button 
                   disabled={actionLoading}
                   className="rounded-2xl h-12 bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold transition-all"
-                  onClick={() => setIsRefundDialogOpen(true)}
+                  onClick={() => {
+                    // Initialize refund items with zero
+                    const initial: Record<string, number> = {};
+                    selectedOrder.order_items.forEach((oi: any) => initial[oi.id] = 0);
+                    setRefundItems(initial);
+                    setIsRefundDialogOpen(true);
+                  }}
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
                   Refund Items
@@ -352,39 +386,82 @@ export default function OrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Refund Reason Dialog */}
+      {/* Refund Items Dialog */}
       <Dialog open={isRefundDialogOpen} onOpenChange={setIsRefundDialogOpen}>
-        <DialogContent className="max-w-[400px] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
+        <DialogContent className="max-w-[480px] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
           <div className="p-8 bg-[#fbfbfd] border-b border-gray-50">
             <DialogHeader>
               <div className="w-12 h-12 bg-rose-50 rounded-xl flex items-center justify-center mb-4">
                 <RotateCcw className="text-rose-600 h-6 w-6" />
               </div>
-              <DialogTitle className="text-2xl font-black text-black">Refund Transaction</DialogTitle>
-              <p className="text-gray-400 font-medium text-[13px] mt-1">Please provide a reason for the return.</p>
+              <DialogTitle className="text-2xl font-black text-black">Refund Items</DialogTitle>
+              <p className="text-gray-400 font-medium text-[13px] mt-1">Select the items and quantities to return.</p>
             </DialogHeader>
           </div>
-          <div className="p-8 space-y-6 bg-white">
+          
+          <div className="p-8 space-y-6 bg-white max-h-[60vh] overflow-y-auto">
+            <div className="space-y-4">
+              {selectedOrder?.order_items?.map((item: any) => {
+                const remaining = item.quantity - (item.refunded_quantity || 0);
+                if (remaining <= 0) return null;
+                
+                return (
+                  <div key={item.id} className="flex items-center justify-between p-4 bg-[#f5f5f7] rounded-2xl border border-gray-100">
+                    <div className="flex-1">
+                      <p className="font-bold text-black text-sm">{item.products?.name}</p>
+                      <p className="text-[11px] text-gray-400 font-medium">Available: {remaining}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-8 w-8 rounded-lg bg-white"
+                        onClick={() => setRefundItems({...refundItems, [item.id]: Math.max(0, (refundItems[item.id] || 0) - 1)})}
+                      >
+                        -
+                      </Button>
+                      <span className="font-bold text-lg min-w-[20px] text-center">{refundItems[item.id] || 0}</span>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-8 w-8 rounded-lg bg-white"
+                        onClick={() => setRefundItems({...refundItems, [item.id]: Math.min(remaining, (refundItems[item.id] || 0) + 1)})}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Reason for Refund</label>
               <Input 
-                placeholder="e.g. Defective item, Customer changed mind"
+                placeholder="e.g. Defective item, Incorrect order"
                 className="h-14 bg-[#f5f5f7] border-transparent rounded-2xl focus:bg-white focus:ring-2 focus:ring-[#0071e3]/10 font-bold"
                 value={refundReason}
                 onChange={(e) => setRefundReason(e.target.value)}
               />
             </div>
-            <div className="flex gap-3">
-              <Button variant="ghost" className="flex-1 rounded-2xl h-14 font-bold text-gray-400" onClick={() => setIsRefundDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                disabled={!refundReason || actionLoading}
-                className="flex-[2] h-14 bg-black hover:bg-gray-800 text-white rounded-2xl font-bold shadow-xl shadow-black/10"
-                onClick={handleRefundOrder}
-              >
-                {actionLoading ? <RefreshCw className="animate-spin h-5 w-5" /> : 'Confirm Refund'}
-              </Button>
+
+            <div className="pt-4 border-t border-gray-50 flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Total Refund</p>
+                <p className="text-2xl font-black text-rose-500">${calculateRefundTotal().toFixed(2)}</p>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="ghost" className="rounded-2xl h-14 font-bold text-gray-400" onClick={() => setIsRefundDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  disabled={!refundReason || calculateRefundTotal() <= 0 || actionLoading}
+                  className="h-14 bg-black hover:bg-gray-800 text-white rounded-2xl px-8 font-bold shadow-xl shadow-black/10"
+                  onClick={handleRefundOrder}
+                >
+                  {actionLoading ? <RefreshCw className="animate-spin h-5 w-5" /> : 'Process Refund'}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
