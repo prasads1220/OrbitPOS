@@ -10,7 +10,7 @@ import {
 } from '@stripe/react-stripe-js';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, CreditCard, Smartphone } from 'lucide-react';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
