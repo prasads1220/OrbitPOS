@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Image as ImageIcon, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export function EditProductDialog({ product, open, onOpenChange, onProductUpdated }: { product: any, open: boolean, onOpenChange: (open: boolean) => void, onProductUpdated?: () => void }) {
