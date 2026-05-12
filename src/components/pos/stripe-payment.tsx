@@ -54,6 +54,7 @@ function CheckoutForm({ amount, onReady, onCancel }: { amount: number, onReady: 
           Cancel
         </Button>
         <Button 
+          type="submit"
           disabled={loading || !stripe} 
           className="flex-[2] h-14 bg-[#0071e3] hover:bg-[#0077ed] text-white rounded-2xl font-bold shadow-xl shadow-blue-500/20"
         >
