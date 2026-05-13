@@ -61,8 +61,6 @@ export default function PrivacyPage() {
                 You have the right to access, correct, or delete your personal data. You can manage most of these settings directly through your store dashboard or by contacting our support team.
               </p>
             </section>
-
-            </section>
           </div>
         </div>
       </main>

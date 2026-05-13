@@ -62,8 +62,6 @@ export default function TermsPage() {
                 In no event shall OrbitPOS or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on OrbitPOS.
               </p>
             </section>
-
-            </section>
           </div>
         </div>
       </main>
