@@ -62,11 +62,6 @@ export default function PrivacyPage() {
               </p>
             </section>
 
-            <section className="p-8 rounded-3xl bg-[#f5f5f7] border border-gray-100">
-              <h2 className="text-2xl font-bold mb-4 tracking-tight">Questions?</h2>
-              <p className="mb-0">
-                If you have any questions about this Privacy Policy, please contact our data protection officer at <span className="text-[#0071e3] font-bold">privacy@orbitpos.com</span>.
-              </p>
             </section>
           </div>
         </div>

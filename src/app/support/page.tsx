@@ -3,10 +3,7 @@
 import { PublicHeader } from '@/components/layout/public-header';
 import { PublicFooter } from '@/components/layout/public-footer';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import Image from 'next/image';
 import { 
-  Search, 
   BookOpen, 
   LifeBuoy, 
   Settings, 
@@ -15,7 +12,9 @@ import {
   Zap, 
   ArrowRight,
   MessageCircle,
-  PlayCircle
+  ShieldCheck,
+  Globe,
+  Database
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -28,18 +27,11 @@ export default function SupportPage() {
         {/* Hero Section */}
         <section className="bg-[#f5f5f7] py-24 mb-20">
           <div className="container px-8 mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-black mb-8">
-              How can we help?
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-black mb-6">
+              OrbitPOS Support
             </h1>
-            <div className="max-w-2xl mx-auto relative group">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 group-focus-within:text-[#0071e3] transition-colors" />
-              <Input 
-                placeholder="Search for articles, guides, and more..." 
-                className="h-16 pl-16 pr-8 rounded-2xl border-none shadow-xl shadow-black/5 bg-white text-lg font-medium focus:ring-2 focus:ring-[#0071e3]/20 transition-all"
-              />
-            </div>
-            <p className="mt-8 text-[#86868b] font-medium">
-              Popular topics: <span className="text-black cursor-pointer hover:text-[#0071e3] transition-colors">Setting up your store</span>, <span className="text-black cursor-pointer hover:text-[#0071e3] transition-colors">Hardware guides</span>, <span className="text-black cursor-pointer hover:text-[#0071e3] transition-colors">Billing</span>
+            <p className="max-w-2xl mx-auto text-xl text-[#86868b] font-medium leading-relaxed">
+              Explore our comprehensive guides and resources to get the most out of your modern retail platform.
             </p>
           </div>
         </section>
@@ -51,61 +43,57 @@ export default function SupportPage() {
               icon={BookOpen} 
               title="Getting Started" 
               description="Learn the basics of setting up your OrbitPOS account and hardware."
-              links={["Setting up your store", "Adding your first product", "Staff roles & permissions"]}
+              links={["Setting up your store", "Adding your first product", "Staff roles & permissions", "System requirements"]}
             />
             <SupportCategory 
               icon={Zap} 
               title="POS Features" 
               description="Master the checkout process, discounts, and inventory tracking."
-              links={["Processing sales", "Applying discounts", "Managing stock levels"]}
+              links={["Processing sales", "Applying discounts", "Managing stock levels", "Barcode scanning"]}
             />
             <SupportCategory 
               icon={Settings} 
               title="Advanced Settings" 
               description="Configure integrations, tax rates, and automated reporting."
-              links={["API integrations", "Tax configuration", "Custom report builder"]}
+              links={["API integrations", "Tax configuration", "Custom report builder", "Webhook setup"]}
             />
             <SupportCategory 
               icon={CreditCard} 
               title="Billing & Subscription" 
               description="Manage your plan, invoices, and payment methods."
-              links={["Updating payment info", "Viewing invoices", "Upgrading your plan"]}
+              links={["Updating payment info", "Viewing invoices", "Upgrading your plan", "Refund policies"]}
             />
             <SupportCategory 
               icon={Users} 
               title="Employee Management" 
               description="Track attendance, manage payroll, and performance."
-              links={["Setting up payroll", "Attendance tracking", "Commission structures"]}
+              links={["Setting up payroll", "Attendance tracking", "Commission structures", "Schedule management"]}
             />
             <SupportCategory 
               icon={LifeBuoy} 
               title="Troubleshooting" 
               description="Resolve common issues with hardware and synchronization."
-              links={["Hardware connection issues", "Sync errors", "Offline mode usage"]}
+              links={["Hardware connection issues", "Sync errors", "Offline mode usage", "Database recovery"]}
+            />
+            <SupportCategory 
+              icon={ShieldCheck} 
+              title="Security & Compliance" 
+              description="Ensure your store data is protected and compliant with standards."
+              links={["Data encryption", "Two-factor auth", "GDPR compliance", "Audit logs"]}
+            />
+            <SupportCategory 
+              icon={Globe} 
+              title="Multi-Store Operations" 
+              description="Manage multiple locations and regions from a single dashboard."
+              links={["Adding new locations", "Global inventory", "Region settings", "Consolidated reports"]}
+            />
+            <SupportCategory 
+              icon={Database} 
+              title="Data & Export" 
+              description="Learn how to export your data for external analysis or migration."
+              links={["CSV exports", "Backup frequency", "Migration guides", "Data retention"]}
             />
           </div>
-
-          {/* Visual Guides Section */}
-          <section className="mb-32">
-            <div className="flex items-center justify-between mb-12">
-              <h2 className="text-3xl font-bold tracking-tight">Visual Guides</h2>
-              <Button variant="link" className="text-[#0071e3] font-bold text-lg p-0 h-auto flex items-center gap-2">
-                View all guides <ArrowRight className="w-5 h-5" />
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <VideoCard 
-                title="Setting up your OrbitPOS Hub"
-                duration="5:24"
-                thumbnail="/support_video_1.png"
-              />
-              <VideoCard 
-                title="Mastering Inventory Management"
-                duration="8:12"
-                thumbnail="/support_video_2.png"
-              />
-            </div>
-          </section>
 
           {/* Contact CTA */}
           <section className="bg-black text-white rounded-[3rem] p-12 md:p-20 text-center">
@@ -119,7 +107,12 @@ export default function SupportPage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <Link href="/contact">
                 <Button size="lg" className="bg-white text-black hover:bg-gray-100 rounded-full px-12 h-14 text-lg font-bold transition-all">
-                  Contact Support
+                   Open a Ticket
+                </Button>
+              </Link>
+              <Link href="/contact">
+                <Button size="lg" variant="outline" className="border-gray-800 text-white hover:bg-gray-900 rounded-full px-12 h-14 text-lg font-bold transition-all">
+                   Chat with Expert
                 </Button>
               </Link>
             </div>
@@ -146,25 +139,6 @@ function SupportCategory({ icon: Icon, title, description, links }: any) {
             {link}
           </div>
         ))}
-      </div>
-    </div>
-  );
-}
-
-function VideoCard({ title, duration, thumbnail }: any) {
-  return (
-    <div className="relative group cursor-pointer overflow-hidden rounded-[2rem] aspect-video bg-gray-100 border border-gray-100 shadow-sm">
-      <Image 
-        src={thumbnail} 
-        alt={title} 
-        fill 
-        sizes="(max-width: 768px) 100vw, 50vw"
-        className="object-cover transition-transform duration-700 group-hover:scale-110" 
-      />
-      <div className="absolute inset-0 bg-black/10 group-hover:bg-black/5 transition-colors z-10" />
-      <div className="absolute bottom-8 left-8 right-8 z-20 text-white">
-        <p className="text-sm font-bold bg-black/40 backdrop-blur-md inline-block px-3 py-1 rounded-full mb-3">{duration}</p>
-        <h3 className="text-2xl font-bold tracking-tight drop-shadow-md">{title}</h3>
       </div>
     </div>
   );

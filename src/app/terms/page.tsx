@@ -63,11 +63,6 @@ export default function TermsPage() {
               </p>
             </section>
 
-            <section className="p-8 rounded-3xl bg-[#f5f5f7] border border-gray-100">
-              <h2 className="text-2xl font-bold mb-4 tracking-tight">Need help?</h2>
-              <p className="mb-0">
-                If you have questions regarding our terms, please contact us at <span className="text-[#0071e3] font-bold">legal@orbitpos.com</span>.
-              </p>
             </section>
           </div>
         </div>
