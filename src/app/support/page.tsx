@@ -131,21 +131,75 @@ export default function SupportPage() {
             </div>
           </section>
 
-          {/* Contact CTA */}
-          <section className="bg-[#f5f5f7] text-black rounded-[3rem] p-12 md:p-20 text-center border border-gray-100 shadow-sm">
-            <div className="w-16 h-16 bg-[#0071e3] rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-blue-500/20">
-              <MessageCircle className="w-8 h-8 text-white" />
-            </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">Still need help?</h2>
-            <p className="text-xl text-[#86868b] font-medium mb-10 max-w-2xl mx-auto leading-relaxed">
-              Our support team is available 24/7 to help you with any questions or technical issues.
-            </p>
-            <div className="flex items-center justify-center">
-              <Link href="/contact">
-                <Button size="lg" className="bg-black text-white hover:bg-gray-800 rounded-full px-16 h-16 text-lg font-black transition-all shadow-xl shadow-black/10">
-                   Open a Support Ticket
-                </Button>
-              </Link>
+          {/* Contact CTA & Support Form */}
+          <section className="bg-white rounded-[3rem] overflow-hidden border border-gray-100 shadow-2xl mb-32">
+            <div className="grid grid-cols-1 lg:grid-cols-2">
+              {/* Left Side: Info */}
+              <div className="bg-[#f5f5f7] p-12 md:p-20">
+                <div className="w-16 h-16 bg-[#0071e3] rounded-2xl flex items-center justify-center mb-8 shadow-xl shadow-blue-500/20">
+                  <MessageCircle className="w-8 h-8 text-white" />
+                </div>
+                <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight text-black">Still need help?</h2>
+                <p className="text-xl text-[#86868b] font-medium mb-10 leading-relaxed">
+                  Our support team is available 24/7. Submit a ticket and we&apos;ll get back to you within 2 hours.
+                </p>
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                       <Zap className="w-5 h-5 text-yellow-500" />
+                    </div>
+                    <p className="font-bold text-black">Fast Response Time</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                       <ShieldCheck className="w-5 h-5 text-green-500" />
+                    </div>
+                    <p className="font-bold text-black">Global Support Coverage</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Side: Form */}
+              <div className="p-12 md:p-20">
+                <form 
+                  action="https://formsubmit.co/orbitpossales@gmail.com" 
+                  method="POST" 
+                  className="space-y-6"
+                >
+                  <input type="hidden" name="_subject" value="New Support Ticket - OrbitPOS" />
+                  <input type="hidden" name="_template" value="table" />
+                  <input type="hidden" name="_captcha" value="false" />
+
+                  <div className="space-y-2">
+                    <label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1">Store Name</label>
+                    <input name="Store Name" required placeholder="e.g. Blue Boutique" className="w-full h-14 rounded-2xl bg-gray-50 border-gray-100 px-6 font-medium focus:ring-2 focus:ring-blue-500/20 transition-all outline-none" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
+                    <input name="Email" type="email" required placeholder="manager@store.com" className="w-full h-14 rounded-2xl bg-gray-50 border-gray-100 px-6 font-medium focus:ring-2 focus:ring-blue-500/20 transition-all outline-none" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1">Issue Type</label>
+                    <select name="Issue Type" className="w-full h-14 rounded-2xl bg-gray-50 border-gray-100 px-6 font-medium focus:ring-2 focus:ring-blue-500/20 transition-all outline-none appearance-none">
+                      <option>Technical Issue</option>
+                      <option>Billing Question</option>
+                      <option>Hardware Setup</option>
+                      <option>Feature Request</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1">Description</label>
+                    <textarea name="Description" required placeholder="How can we help you today?" className="w-full min-h-[150px] rounded-2xl bg-gray-50 border-gray-100 p-6 font-medium focus:ring-2 focus:ring-blue-500/20 transition-all outline-none resize-none" />
+                  </div>
+
+                  <Button type="submit" className="w-full h-16 bg-black hover:bg-gray-800 text-white rounded-2xl text-lg font-bold transition-all shadow-xl shadow-black/10">
+                    Submit Support Ticket
+                  </Button>
+                </form>
+              </div>
             </div>
           </section>
         </div>

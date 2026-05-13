@@ -7,34 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Mail, Phone, MapPin, Send, MessageSquare, Building2, Globe } from 'lucide-react';
-import { toast } from 'sonner';
-
-import { sendContactEmail } from '@/app/actions/contact';
-import { useTransition } from 'react';
+import Link from 'next/link';
 
 export default function ContactPage() {
-  const [isPending, startTransition] = useTransition();
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    
-    startTransition(async () => {
-      try {
-        const result = await sendContactEmail(formData);
-        if (result.error) {
-          toast.error(result.error);
-        } else {
-          toast.success('Message sent successfully! Our sales team will reach out soon.');
-          (e.target as HTMLFormElement).reset();
-        }
-      } catch (err) {
-        console.error('Submission failed:', err);
-        toast.error('Failed to submit form. Please check your internet connection or try again later.');
-      }
-    });
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-white text-[#1d1d1f] selection:bg-indigo-100 font-sans">
       <PublicHeader />
@@ -85,33 +60,42 @@ export default function ContactPage() {
 
             {/* Contact Form */}
             <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-gray-100 animate-in fade-in slide-in-from-right-4 duration-1000 delay-400">
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form 
+                action="https://formsubmit.co/orbitpossales@gmail.com" 
+                method="POST" 
+                className="space-y-6"
+              >
+                {/* FormSubmit Configuration */}
+                <input type="hidden" name="_subject" value="New OrbitPOS Contact Lead" />
+                <input type="hidden" name="_template" value="table" />
+                <input type="hidden" name="_captcha" value="false" />
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="firstName" className="text-[13px] font-semibold text-gray-500 ml-1">First Name</Label>
-                    <Input id="firstName" name="firstName" placeholder="Jane" required className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all" />
+                    <Input id="firstName" name="First Name" placeholder="Jane" required className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastName" className="text-[13px] font-semibold text-gray-500 ml-1">Last Name</Label>
-                    <Input id="lastName" name="lastName" placeholder="Smith" required className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all" />
+                    <Input id="lastName" name="Last Name" placeholder="Smith" required className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all" />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-[13px] font-semibold text-gray-500 ml-1">Email Address</Label>
-                  <Input id="email" name="email" type="email" placeholder="jane@company.com" required className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all" />
+                  <Input id="email" name="Email" type="email" placeholder="jane@company.com" required className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all" />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="company" className="text-[13px] font-semibold text-gray-500 ml-1">Company Name</Label>
-                  <Input id="company" name="company" placeholder="Acme Inc." className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all" />
+                  <Input id="company" name="Company" placeholder="Acme Inc." className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all" />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="message" className="text-[13px] font-semibold text-gray-500 ml-1">How can we help?</Label>
                   <Textarea 
                     id="message" 
-                    name="message"
+                    name="Message"
                     placeholder="Tell us about your business goals..." 
                     required 
                     className="min-h-[150px] rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all resize-none p-4" 
@@ -120,10 +104,9 @@ export default function ContactPage() {
 
                 <Button 
                   type="submit" 
-                  disabled={isPending}
-                  className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white rounded-full h-14 text-lg font-bold transition-all hover:scale-[1.01] shadow-lg shadow-blue-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white rounded-full h-14 text-lg font-bold transition-all hover:scale-[1.01] shadow-lg shadow-blue-500/10"
                 >
-                  {isPending ? 'Sending...' : 'Send Message'}
+                  Send Message
                 </Button>
                 
                 <p className="text-center text-[13px] text-[#86868b] font-medium px-4">
@@ -154,6 +137,3 @@ function ContactMethod({ icon: Icon, title, description, value }: any) {
     </div>
   );
 }
-
-import Link from 'next/link';
-
