@@ -1,22 +1,36 @@
 'use client';
 
-import { Bell, Search, Settings, HelpCircle } from 'lucide-react';
+import { Bell, Search, Settings, HelpCircle, Menu } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const { profile } = useAuthStore();
 
   return (
-    <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 sticky top-0 z-40">
-      <div className="flex items-center flex-1 max-w-md">
-        <div className="relative w-full group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-[#0071e3] transition-colors" />
-          <Input 
-            placeholder="Search products, orders, or customers..." 
-            className="pl-11 h-11 bg-white border-gray-100 rounded-2xl focus:ring-2 focus:ring-gray-100 font-medium text-[14px]"
-          />
+    <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-8 sticky top-0 z-40">
+      <div className="flex items-center gap-4 flex-1">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="lg:hidden rounded-xl h-10 w-10 text-gray-500 hover:text-black hover:bg-gray-100"
+          onClick={onMenuClick}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <div className="hidden md:flex items-center flex-1 max-w-md">
+          <div className="relative w-full group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-[#0071e3] transition-colors" />
+            <Input 
+              placeholder="Search products, orders, or customers..." 
+              className="pl-11 h-11 bg-white border-gray-100 rounded-2xl focus:ring-2 focus:ring-gray-100 font-medium text-[14px]"
+            />
+          </div>
         </div>
       </div>
 
