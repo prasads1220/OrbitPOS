@@ -256,13 +256,11 @@ export default function ProductsPage() {
                   {profile?.role === 'admin' && (
                     <TableCell className="pr-8 text-right">
                       <DropdownMenu>
-                      <DropdownMenuTrigger 
-                        render={
-                          <Button variant="ghost" size="icon" className="rounded-xl hover:bg-gray-100">
-                            <MoreHorizontal className="h-5 w-5 text-gray-400" />
-                          </Button>
-                        }
-                      />
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-gray-100">
+                          <MoreHorizontal className="h-5 w-5 text-gray-400" />
+                        </Button>
+                      </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-2xl border-gray-100 shadow-xl p-2">
                           <DropdownMenuGroup>
                             <DropdownMenuLabel className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-2">Manage Item</DropdownMenuLabel>
