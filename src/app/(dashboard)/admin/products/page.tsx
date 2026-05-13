@@ -256,7 +256,7 @@ export default function ProductsPage() {
                   {profile?.role === 'admin' && (
                     <TableCell className="pr-8 text-right">
                       <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <DropdownMenuTrigger>
                         <Button variant="ghost" size="icon" className="rounded-xl hover:bg-gray-100">
                           <MoreHorizontal className="h-5 w-5 text-gray-400" />
                         </Button>
