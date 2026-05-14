@@ -53,6 +53,7 @@ interface ReceiptData {
   cardBrand?: string;
   cashTendered?: string;
   changeDue?: number;
+  cashierName?: string;
 }
 
 export function CheckoutDialog({ 
@@ -137,6 +138,7 @@ export function CheckoutDialog({
           payment_method: method,
           payment_status: 'completed',
           store_id: profile.store_id,
+          cashier_id: profile.id,
           stripe_payment_intent_id: stripeId || (method === 'card' ? stripeIntentId : null),
         })
         .select()
@@ -192,7 +194,8 @@ export function CheckoutDialog({
         cardLast4: last4,
         cardBrand: brand,
         cashTendered: method === 'cash' ? cashTendered : undefined,
-        changeDue: method === 'cash' ? changeDue : undefined
+        changeDue: method === 'cash' ? changeDue : undefined,
+        cashierName: profile?.full_name || 'System'
       });
 
       setStep('success');

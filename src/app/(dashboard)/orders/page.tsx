@@ -75,7 +75,7 @@ export default function OrdersPage() {
           payment_method,
           payment_status,
           created_at,
-          profiles ( full_name ),
+          profiles:cashier_id ( full_name ),
           order_items (
             id,
             quantity,
@@ -242,6 +242,7 @@ export default function OrdersPage() {
       tax: order.tax_amount || 0,
       discount: order.discount_amount || 0,
       total: order.total_amount,
+      cashierName: order.profiles?.full_name || 'System',
       type: 'sale'
     });
   };

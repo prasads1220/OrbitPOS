@@ -13,8 +13,10 @@ interface ReceiptPrinterProps {
     total: number;
     discount: number;
     cardLast4?: string;
+    cardBrand?: string;
     cashTendered?: string;
     changeDue?: number;
+    cashierName?: string;
     type?: 'sale' | 'refund' | 'void';
     refundReason?: string;
   } | null;
@@ -54,10 +56,16 @@ export function ReceiptPrinter({ receiptData }: ReceiptPrinterProps) {
             <span>METHOD:</span> 
             <span>
               {receiptData.method === 'card' 
-                ? `${(receiptData as any).cardBrand || 'CARD'} **** ${receiptData.cardLast4 || '****'}` 
+                ? `${receiptData.cardBrand || 'CARD'} **** ${receiptData.cardLast4 || '****'}` 
                 : receiptData.method}
             </span>
           </p>
+          {receiptData.cashierName && (
+            <p className="flex justify-between uppercase">
+              <span>CASHIER:</span> 
+              <span>{receiptData.cashierName}</span>
+            </p>
+          )}
         </div>
 
         <div className="border-t border-b py-2 space-y-2">
