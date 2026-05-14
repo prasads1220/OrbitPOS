@@ -44,6 +44,7 @@ interface ReceiptData {
   date: string;
   method: string;
   discount: number;
+  cardLast4?: string;
   cashTendered?: string;
   changeDue?: number;
 }
@@ -51,6 +52,7 @@ interface ReceiptData {
 export function CheckoutDialog({ 
   open, 
   onOpenChange,
+  items,
   subtotal,
   tax,
   total,
@@ -107,7 +109,7 @@ export function CheckoutDialog({
     setCashTendered(amount.toFixed(2));
   };
 
-  const finalizeOrder = async (stripeId?: string) => {
+  const finalizeOrder = async (stripeId?: string, last4?: string) => {
     if (!profile?.store_id) {
       toast.error('Store ID not found. Please log in again.');
       return;
@@ -178,6 +180,7 @@ export function CheckoutDialog({
         date: new Date().toLocaleString(),
         method,
         discount,
+        cardLast4: last4,
         cashTendered: method === 'cash' ? cashTendered : undefined,
         changeDue: method === 'cash' ? changeDue : undefined
       });
@@ -253,7 +256,7 @@ export function CheckoutDialog({
     doc.setFontSize(11);
     doc.text(`Order ID: #${receiptData.orderId.slice(0, 8)}`, 20, 60);
     doc.text(`Date: ${receiptData.date}`, 20, 68);
-    doc.text(`Payment: ${receiptData.method.toUpperCase()}`, 20, 76);
+    doc.text(`Payment: ${receiptData.method.toUpperCase()}${receiptData.cardLast4 ? ` (Card ending in ${receiptData.cardLast4})` : ''}`, 20, 76);
     
     let y = 90;
     doc.setFont('helvetica', 'bold');
@@ -318,9 +321,8 @@ export function CheckoutDialog({
     onOpenChange(false);
   };
 
-  const handleStripeSuccess = (intentId: string) => {
-    setStripeIntentId(intentId);
-    finalizeOrder(intentId);
+  const handleStripeSuccess = (intentId: string, last4?: string) => {
+    finalizeOrder(intentId, last4);
   };
 
   return (

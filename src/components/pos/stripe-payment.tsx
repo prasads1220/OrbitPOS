@@ -14,7 +14,7 @@ import { RefreshCw, CreditCard, Smartphone } from 'lucide-react';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
-function CheckoutForm({ amount, onReady, onCancel }: { amount: number, onReady: (id: string) => void, onCancel: () => void }) {
+function CheckoutForm({ amount, onReady, onCancel }: { amount: number, onReady: (id: string, last4?: string) => void, onCancel: () => void }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -43,8 +43,12 @@ function CheckoutForm({ amount, onReady, onCancel }: { amount: number, onReady: 
         setLoading(false);
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
         console.log('Stripe payment succeeded!', paymentIntent.id);
+        
+        // Try to get last 4 digits (optional)
+        const last4 = (paymentIntent as any).payment_method_details?.card?.last4;
+
         toast.success('Payment successful!');
-        onReady(paymentIntent.id);
+        onReady(paymentIntent.id, last4);
       } else {
         console.log('Stripe payment status:', paymentIntent?.status);
         setLoading(false);
@@ -105,7 +109,7 @@ function CheckoutForm({ amount, onReady, onCancel }: { amount: number, onReady: 
   );
 }
 
-export default function StripePayment({ publishableKey, clientSecret, amount, onSuccess, onCancel }: { publishableKey: string, clientSecret: string, amount: number, onSuccess: (id: string) => void, onCancel: () => void }) {
+export default function StripePayment({ publishableKey, clientSecret, amount, onSuccess, onCancel }: { publishableKey: string, clientSecret: string, amount: number, onSuccess: (id: string, last4?: string) => void, onCancel: () => void }) {
   const stripePromise = loadStripe(publishableKey);
 
   return (

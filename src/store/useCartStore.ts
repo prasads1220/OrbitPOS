@@ -16,6 +16,7 @@ interface CartState {
   total: number;
   subtotal: number;
   tax: number;
+  discount: number;
   setDiscount: (amount: number) => void;
   calculateTotals: () => void;
 }
