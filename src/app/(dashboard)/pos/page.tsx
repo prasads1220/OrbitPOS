@@ -37,7 +37,17 @@ export default function POSPage() {
   const [loading, setLoading] = useState(true);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const { items, addItem, removeItem, updateQuantity, subtotal, tax, total, discount, discountType, setDiscount, clearCart } = useCartStore();
+  const items = useCartStore(state => state.items);
+  const addItem = useCartStore(state => state.addItem);
+  const removeItem = useCartStore(state => state.removeItem);
+  const updateQuantity = useCartStore(state => state.updateQuantity);
+  const subtotal = useCartStore(state => state.subtotal);
+  const tax = useCartStore(state => state.tax);
+  const total = useCartStore(state => state.total);
+  const discount = useCartStore(state => state.discount);
+  const discountType = useCartStore(state => state.discountType);
+  const setDiscount = useCartStore(state => state.setDiscount);
+  const clearCart = useCartStore(state => state.clearCart);
   const [initialMethod, setInitialMethod] = useState<'cash' | 'card'>('cash');
   const searchInputRef = useRef<HTMLInputElement>(null);
 

@@ -43,9 +43,9 @@ export default function InventoryPage() {
     }
   }, [profile]);
 
-  const fetchInventory = async () => {
+  const fetchInventory = async (silent = false) => {
     if (!profile?.store_id) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -70,25 +70,33 @@ export default function InventoryPage() {
 
   const handleAdjust = async (product: any, delta: number) => {
     const newQty = Math.max(0, product.stock_quantity + delta);
+    
+    // Optimistic Update
+    setProducts(prev => prev.map(p => 
+      p.id === product.id ? { ...p, stock_quantity: newQty } : p
+    ));
+
     const { error } = await supabase
       .from('products')
       .update({ stock_quantity: newQty } as any)
       .eq('id', product.id);
-
+ 
     if (error) {
       toast.error('Failed to update stock');
+      // Revert on error
+      fetchInventory(true);
       return;
     }
-
+ 
     // Log the change
     await supabase.from('inventory_logs').insert({
       product_id: product.id,
       change_amount: delta,
       reason: delta > 0 ? 'restock' : 'adjustment',
     });
-
+ 
     toast.success(`Stock updated: ${product.name}`);
-    fetchInventory();
+    fetchInventory(true);
     setAdjustingId(null);
   };
 
@@ -99,7 +107,7 @@ export default function InventoryPage() {
           <h1 className="text-3xl font-bold tracking-tight text-black">Inventory</h1>
           <p className="text-[#86868b] font-medium mt-1">Monitor stock levels and adjust quantities.</p>
         </div>
-        <Button onClick={fetchInventory} variant="outline" className="rounded-2xl h-11 font-bold">
+        <Button onClick={() => fetchInventory()} variant="outline" className="rounded-2xl h-11 font-bold">
           <RefreshCw className="mr-2 h-4 w-4" />
           Refresh
         </Button>
