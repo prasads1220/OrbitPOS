@@ -155,7 +155,15 @@ export default function POSPage() {
                   <div className={cn("p-5 relative z-10", viewMode === 'list' && "flex-1 p-0")}>
                     <h3 className="font-bold text-black group-hover:text-[#0071e3] transition-colors truncate text-[15px]">{product.name}</h3>
                     <div className="flex items-center justify-between mt-1">
-                      <p className="text-xl font-black text-black">${product.price.toFixed(2)}</p>
+                      <div className="flex flex-col">
+                        <p className="text-xl font-black text-black">${product.price.toFixed(2)}</p>
+                        <p className={cn(
+                          "text-[10px] font-bold uppercase tracking-wider",
+                          product.stock_quantity <= 0 ? "text-rose-500" : "text-gray-400"
+                        )}>
+                          {product.stock_quantity <= 0 ? 'Out of Stock' : `Stock: ${product.stock_quantity}`}
+                        </p>
+                      </div>
                       <span className="text-[10px] font-bold text-gray-400 tracking-tight uppercase">
                         {product.sku}
                       </span>
@@ -222,8 +230,9 @@ export default function POSPage() {
                       </button>
                       <span className="px-2 text-[12px] font-black min-w-6 text-center">{item.quantity}</span>
                       <button 
-                        className="p-1 hover:bg-white hover:shadow-sm rounded-lg transition-all" 
+                        className="p-1 hover:bg-white hover:shadow-sm rounded-lg transition-all disabled:opacity-30" 
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        disabled={item.quantity >= item.stock_quantity}
                       >
                         <Plus className="h-3 w-3" />
                       </button>

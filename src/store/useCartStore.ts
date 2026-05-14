@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Database } from '@/types/supabase';
+import { toast } from 'sonner';
 
 type Product = Database['public']['Tables']['products']['Row'];
 
@@ -29,12 +30,20 @@ export const useCartStore = create<CartState>((set, get) => ({
     const existingItem = items.find((item) => item.id === product.id);
 
     if (existingItem) {
+      if (existingItem.quantity >= product.stock_quantity) {
+        toast.error(`Only ${product.stock_quantity} items available in stock`);
+        return;
+      }
       set({
         items: items.map((item) =>
           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         ),
       });
     } else {
+      if (product.stock_quantity <= 0) {
+        toast.error('Item is out of stock');
+        return;
+      }
       set({ items: [...items, { ...product, quantity: 1 }] });
     }
     get().calculateTotals();
@@ -44,13 +53,23 @@ export const useCartStore = create<CartState>((set, get) => ({
     get().calculateTotals();
   },
   updateQuantity: (productId, quantity) => {
+    const items = get().items;
+    const item = items.find(i => i.id === productId);
+    
+    if (!item) return;
+
+    if (quantity > item.stock_quantity) {
+      toast.error(`Only ${item.stock_quantity} items available in stock`);
+      return;
+    }
+
     if (quantity <= 0) {
       get().removeItem(productId);
       return;
     }
     set({
-      items: get().items.map((item) =>
-        item.id === productId ? { ...item, quantity } : item
+      items: items.map((i) =>
+        i.id === productId ? { ...i, quantity } : i
       ),
     });
     get().calculateTotals();
