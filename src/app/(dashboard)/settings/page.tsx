@@ -13,11 +13,13 @@ import {
   Loader2,
   Camera,
   Save,
-  Key
+  Key,
+  Printer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
 type SettingsTab = 'profile' | 'payments';
@@ -32,9 +34,10 @@ export default function SettingsPage() {
     hourly_rate: 0,
   });
 
-  const [stripeData, setStripeData] = useState({
+  const [storeSettings, setStoreSettings] = useState({
     stripe_publishable_key: '',
     stripe_secret_key: '',
+    auto_print_receipt: true,
   });
 
   useEffect(() => {
@@ -54,14 +57,15 @@ export default function SettingsPage() {
   const fetchStoreData = async (storeId: string) => {
     const { data, error } = await supabase
       .from('stores')
-      .select('stripe_publishable_key, stripe_secret_key')
+      .select('stripe_publishable_key, stripe_secret_key, auto_print_receipt')
       .eq('id', storeId)
       .single();
     
     if (data) {
-      setStripeData({
+      setStoreSettings({
         stripe_publishable_key: data.stripe_publishable_key || '',
         stripe_secret_key: data.stripe_secret_key || '',
+        auto_print_receipt: data.auto_print_receipt ?? true,
       });
     }
   };
@@ -100,15 +104,20 @@ export default function SettingsPage() {
       const { error } = await supabase
         .from('stores')
         .update({
-          stripe_publishable_key: stripeData.stripe_publishable_key,
-          stripe_secret_key: stripeData.stripe_secret_key,
+          stripe_publishable_key: storeSettings.stripe_publishable_key,
+          stripe_secret_key: storeSettings.stripe_secret_key,
+          auto_print_receipt: storeSettings.auto_print_receipt,
         })
         .eq('id', profile.store_id);
 
       if (error) throw error;
-      toast.success('Stripe configuration updated');
+      
+      // Update global state if needed
+      await fetchProfile(profile.id);
+      
+      toast.success('Store configuration updated');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update payments');
+      toast.error(error.message || 'Failed to update store settings');
     } finally {
       setLoading(false);
     }
@@ -220,8 +229,8 @@ export default function SettingsPage() {
                         <Input 
                           placeholder="pk_test_..."
                           className="h-14 pl-14 bg-[#f5f5f7] border-transparent rounded-2xl focus:bg-white focus:ring-2 focus:ring-[#0071e3]/10 font-mono text-[14px]"
-                          value={stripeData.stripe_publishable_key}
-                          onChange={(e) => setStripeData({...stripeData, stripe_publishable_key: e.target.value})}
+                          value={storeSettings.stripe_publishable_key}
+                          onChange={(e) => setStoreSettings({...storeSettings, stripe_publishable_key: e.target.value})}
                         />
                       </div>
                     </div>
@@ -234,13 +243,33 @@ export default function SettingsPage() {
                           type="password"
                           placeholder="sk_test_..."
                           className="h-14 pl-14 bg-[#f5f5f7] border-transparent rounded-2xl focus:bg-white focus:ring-2 focus:ring-[#0071e3]/10 font-mono text-[14px]"
-                          value={stripeData.stripe_secret_key}
-                          onChange={(e) => setStripeData({...stripeData, stripe_secret_key: e.target.value})}
+                          value={storeSettings.stripe_secret_key}
+                          onChange={(e) => setStoreSettings({...storeSettings, stripe_secret_key: e.target.value})}
                         />
                       </div>
                       <p className="text-[11px] text-[#86868b] font-medium ml-1">
                         Your secret key is stored securely and never shared with the frontend.
                       </p>
+                    </div>
+
+                    <div className="pt-6 border-t border-gray-50">
+                      <Label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-4 block">POS Settings</Label>
+                      <div className="flex items-center justify-between p-6 bg-[#f5f5f7] rounded-3xl group hover:bg-white hover:ring-2 hover:ring-[#0071e3]/10 transition-all">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[#0071e3] shadow-sm">
+                            <Printer className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-black">Automatic Receipt Printing</p>
+                            <p className="text-[12px] text-gray-400 font-medium">Print receipt immediately after payment</p>
+                          </div>
+                        </div>
+                        <Checkbox 
+                          checked={storeSettings.auto_print_receipt}
+                          onCheckedChange={(checked) => setStoreSettings({...storeSettings, auto_print_receipt: !!checked})}
+                          className="h-6 w-6 rounded-lg border-2"
+                        />
+                      </div>
                     </div>
                   </div>
 

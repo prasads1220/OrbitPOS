@@ -203,14 +203,15 @@ export function CheckoutDialog({
   };
 
   useEffect(() => {
-    if (step === 'success' && receiptData) {
+    const autoPrint = profile?.stores?.auto_print_receipt !== false;
+    if (step === 'success' && receiptData && autoPrint) {
       // Small delay to ensure the UI has rendered
       const timer = setTimeout(() => {
         handlePrint();
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [step, receiptData]);
+  }, [step, receiptData, profile?.stores?.auto_print_receipt]);
 
   const handlePrint = () => {
     window.print();
