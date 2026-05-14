@@ -60,9 +60,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       )}
 
       <div className={cn(
-        "flex flex-col w-[280px] bg-[#fbfbfd] border-r border-gray-100 h-full p-6 transition-transform duration-300 z-[60]",
-        "fixed inset-y-0 left-0 lg:relative lg:translate-x-0",
-        isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        "flex flex-col w-[280px] bg-[#fbfbfd] border-r border-gray-100 h-full p-6 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) z-[60] shadow-[10px_0_40px_rgba(0,0,0,0.02)]",
+        "fixed inset-y-0 left-0 lg:relative lg:translate-x-0 lg:shadow-none",
+        isOpen ? "translate-x-0 scale-100 opacity-100" : "-translate-x-full opacity-0 lg:translate-x-0 lg:opacity-100"
       )}>
         <div className="mb-10 px-2 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-3">
@@ -95,20 +95,25 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  "group flex items-center justify-between px-4 py-3 rounded-2xl text-[14px] font-semibold transition-all duration-300",
+                  "group flex items-center justify-between px-4 py-3 rounded-2xl text-[14px] font-semibold transition-all duration-300 hover:scale-[1.03] active:scale-95",
                   isActive 
-                    ? "bg-white text-[#0071e3] shadow-sm border border-gray-100" 
-                    : "text-[#86868b] hover:bg-white hover:text-black"
+                    ? "bg-white text-[#0071e3] shadow-[0_10px_20px_rgba(0,0,0,0.04)] border border-gray-100 translate-x-1" 
+                    : "text-[#86868b] hover:bg-white hover:text-black hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)]"
                 )}
                 onClick={() => {
                   if (window.innerWidth < 1024) onClose?.();
                 }}
               >
                 <div className="flex items-center">
-                  <item.icon className={cn("mr-3 h-5 w-5 transition-colors", isActive ? "text-[#0071e3]" : "text-gray-400 group-hover:text-black")} />
+                  <item.icon className={cn("mr-3 h-5 w-5 transition-all duration-300 group-hover:scale-110", isActive ? "text-[#0071e3] scale-110" : "text-gray-400 group-hover:text-black")} />
                   {item.name}
                 </div>
-                {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[#0071e3]" />}
+                {isActive && (
+                  <div className="flex items-center">
+                    <ChevronRight className="h-4 w-4 text-[#0071e3] opacity-40" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#0071e3] ml-1 shadow-[0_0_10px_rgba(0,113,227,0.4)]" />
+                  </div>
+                )}
               </Link>
             );
           })}

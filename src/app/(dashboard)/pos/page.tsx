@@ -339,20 +339,18 @@ export default function POSPage() {
             <UserPlus className="mr-2 h-4 w-4" />
             Assign Customer
           </Button>
-        </div>
+        <CheckoutDialog 
+          open={checkoutOpen} 
+          onOpenChange={setCheckoutOpen}
+          items={items}
+          subtotal={subtotal}
+          tax={tax}
+          total={total}
+          discount={discount}
+          discountType={discountType}
+          initialMethod={initialMethod}
+        />
       </div>
-      
-      <CheckoutDialog 
-        open={checkoutOpen} 
-        onOpenChange={setCheckoutOpen}
-        items={items}
-        subtotal={subtotal}
-        tax={tax}
-        total={total}
-        discount={discount}
-        initialMethod={initialMethod}
-      />
     </div>
-
   );
 }
