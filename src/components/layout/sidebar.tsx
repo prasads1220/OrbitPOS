@@ -54,7 +54,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Mobile Backdrop */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 lg:hidden animate-in fade-in duration-300" 
+          className="fixed inset-0 bg-black/60 z-50 lg:hidden animate-in fade-in duration-300" 
           onClick={onClose}
         />
       )}

@@ -236,12 +236,11 @@ export function CheckoutDialog({
   useEffect(() => {
     const autoPrint = profile?.stores?.auto_print_receipt !== false;
     if (step === 'success' && receiptData && autoPrint) {
-      // Small delay to ensure the UI has rendered
+      handlePrint();
+      // Clear data after a delay to prevent re-triggering during re-renders
       const timer = setTimeout(() => {
-        handlePrint();
-        // Clear receipt data after printing to prevent double-printing
-        setTimeout(() => setReceiptData(null), 1000);
-      }, 500);
+        setReceiptData(null);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [step, receiptData, profile?.stores?.auto_print_receipt]);

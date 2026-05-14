@@ -194,12 +194,15 @@ export default function OrdersPage() {
         </head>
         <body>
           <div id="printable-receipt">
-            \${printContent.innerHTML}
+            ${printContent.innerHTML}
           </div>
           <script>
             window.onload = () => {
               window.print();
-              setTimeout(() => { window.close(); }, 500);
+              // Aggressive closing after print
+              setTimeout(() => { 
+                window.close(); 
+              }, 300);
             };
           </script>
         </body>
@@ -212,11 +215,11 @@ export default function OrdersPage() {
   useEffect(() => {
     const autoPrint = profile?.stores?.auto_print_receipt !== false;
     if (receiptData && autoPrint) {
+      handlePrint();
+      // Use a slightly longer delay to clear data after the print window has handled it
       const timer = setTimeout(() => {
-        handlePrint();
-        // Clear receipt data after printing to prevent double-printing on re-renders
-        setTimeout(() => setReceiptData(null), 1000);
-      }, 500);
+        setReceiptData(null);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [receiptData, profile?.stores?.auto_print_receipt]);
