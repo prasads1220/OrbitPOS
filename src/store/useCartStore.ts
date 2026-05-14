@@ -17,7 +17,8 @@ interface CartState {
   subtotal: number;
   tax: number;
   discount: number;
-  setDiscount: (amount: number) => void;
+  discountType: 'amount' | 'percentage';
+  setDiscount: (amount: number, type?: 'amount' | 'percentage') => void;
   calculateTotals: () => void;
 }
 
@@ -54,21 +55,35 @@ export const useCartStore = create<CartState>((set, get) => ({
     });
     get().calculateTotals();
   },
-  setDiscount: (amount) => {
-    set({ discount: amount });
+  setDiscount: (amount, type) => {
+    set({ 
+      discount: amount, 
+      discountType: type || get().discountType 
+    });
     get().calculateTotals();
   },
-  clearCart: () => set({ items: [], total: 0, subtotal: 0, tax: 0, discount: 0 }),
+  clearCart: () => set({ items: [], total: 0, subtotal: 0, tax: 0, discount: 0, discountType: 'amount' }),
   subtotal: 0,
   tax: 0,
   discount: 0,
+  discountType: 'amount',
   total: 0,
   calculateTotals: () => {
     const items = get().items;
     const discount = get().discount;
+    const discountType = get().discountType;
+    
     const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
     const tax = subtotal * 0.08; // 8% tax
-    const total = Math.max(0, subtotal + tax - discount);
+    
+    let discountValue = 0;
+    if (discountType === 'percentage') {
+      discountValue = (subtotal + tax) * (discount / 100);
+    } else {
+      discountValue = discount;
+    }
+
+    const total = Math.max(0, subtotal + tax - discountValue);
     set({ subtotal, tax, total });
   },
 }));

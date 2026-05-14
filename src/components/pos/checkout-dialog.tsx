@@ -44,6 +44,7 @@ interface ReceiptData {
   date: string;
   method: string;
   discount: number;
+  discountType: 'amount' | 'percentage';
   cardLast4?: string;
   cashTendered?: string;
   changeDue?: number;
@@ -57,6 +58,7 @@ export function CheckoutDialog({
   tax,
   total,
   discount = 0,
+  discountType = 'amount',
   initialMethod = 'cash'
 }: { 
   open: boolean, 
@@ -66,6 +68,7 @@ export function CheckoutDialog({
   tax: number,
   total: number,
   discount?: number,
+  discountType?: 'amount' | 'percentage',
   initialMethod?: 'cash' | 'card'
 }) {
   const { profile } = useAuthStore();
@@ -180,6 +183,7 @@ export function CheckoutDialog({
         date: new Date().toLocaleString(),
         method,
         discount,
+        discountType,
         cardLast4: last4,
         cashTendered: method === 'cash' ? cashTendered : undefined,
         changeDue: method === 'cash' ? changeDue : undefined
@@ -289,7 +293,8 @@ export function CheckoutDialog({
       y += 7;
       doc.setTextColor(220, 50, 50);
       doc.text('Discount:', 130, y);
-      doc.text(`-$${receiptData.discount.toFixed(2)}`, 190, y, { align: 'right' });
+      const discStr = receiptData.discountType === 'percentage' ? `${receiptData.discount}%` : `$${receiptData.discount.toFixed(2)}`;
+      doc.text(`-${discStr}`, 190, y, { align: 'right' });
       doc.setTextColor(0, 0, 0);
     }
     y += 10;

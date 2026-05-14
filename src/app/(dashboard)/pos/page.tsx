@@ -37,7 +37,7 @@ export default function POSPage() {
   const [loading, setLoading] = useState(true);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const { items, addItem, removeItem, updateQuantity, subtotal, tax, total, discount, setDiscount, clearCart } = useCartStore();
+  const { items, addItem, removeItem, updateQuantity, subtotal, tax, total, discount, discountType, setDiscount, clearCart } = useCartStore();
   const [initialMethod, setInitialMethod] = useState<'cash' | 'card'>('cash');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -177,7 +177,7 @@ export default function POSPage() {
       </div>
 
       {/* Cart / Checkout */}
-      <div className="w-full lg:w-[400px] flex flex-col h-[calc(100vh-180px)] bg-white rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.06)] border border-gray-100 overflow-hidden shrink-0 sticky top-0">
+      <div className="w-full lg:w-[400px] flex flex-col h-[calc(100vh-150px)] bg-white rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.06)] border border-gray-100 overflow-hidden shrink-0 sticky top-0">
         <div className="p-8 border-b border-gray-50 flex items-center justify-between bg-[#fbfbfd]/50">
           <div>
             <h2 className="font-black text-xl text-black tracking-tight">Current Order</h2>
@@ -239,18 +239,51 @@ export default function POSPage() {
               <span>Tax (8%)</span>
               <span className="text-black">${tax.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-[14px] text-rose-500 font-bold">
-              <div className="flex items-center gap-2">
-                <span>Discount</span>
-                <input 
-                  type="number"
-                  placeholder="0.00"
-                  className="w-20 bg-rose-50 border-none rounded-lg px-2 py-0.5 text-[12px] focus:ring-1 focus:ring-rose-200 outline-none"
-                  value={discount || ''}
-                  onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                />
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-[14px] text-rose-500 font-bold">
+                <div className="flex items-center gap-2">
+                  <span>Discount</span>
+                  <div className="flex bg-rose-50 p-1 rounded-lg">
+                    <button 
+                      onClick={() => setDiscount(discount, 'amount')}
+                      className={cn("px-2 py-0.5 rounded-md text-[10px] transition-all", discountType === 'amount' ? "bg-rose-500 text-white shadow-sm" : "text-rose-400")}
+                    >
+                      $
+                    </button>
+                    <button 
+                      onClick={() => setDiscount(discount, 'percentage')}
+                      className={cn("px-2 py-0.5 rounded-md text-[10px] transition-all", discountType === 'percentage' ? "bg-rose-500 text-white shadow-sm" : "text-rose-400")}
+                    >
+                      %
+                    </button>
+                  </div>
+                </div>
+                <span>-{discountType === 'percentage' ? `${discount}%` : `$${discount.toFixed(2)}`}</span>
               </div>
-              <span>-${discount.toFixed(2)}</span>
+              
+              <div className="flex flex-wrap gap-2">
+                {[5, 10, 15, 20, 25, 50].map((pct) => (
+                  <button
+                    key={pct}
+                    onClick={() => setDiscount(pct, 'percentage')}
+                    className="px-2.5 py-1.5 rounded-xl bg-rose-50 text-rose-600 text-[11px] font-black hover:bg-rose-100 transition-all active:scale-95"
+                  >
+                    {pct}%
+                  </button>
+                ))}
+                <div className="relative flex-1 min-w-[80px]">
+                  <input 
+                    type="number"
+                    placeholder="Manual"
+                    className="w-full bg-gray-50 border-none rounded-xl px-3 py-1.5 text-[11px] font-bold focus:ring-1 focus:ring-gray-200 outline-none"
+                    value={discount || ''}
+                    onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-bold">
+                    {discountType === 'percentage' ? '%' : '$'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
           
