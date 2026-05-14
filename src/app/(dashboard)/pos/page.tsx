@@ -125,28 +125,33 @@ export default function POSPage() {
                 <div 
                   key={product.id} 
                   className={cn(
-                    "group relative bg-white rounded-3xl border border-transparent hover:border-[#0071e3]/20 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer overflow-hidden",
+                    "group relative bg-white rounded-3xl border border-transparent hover:border-[#0071e3]/30 shadow-sm hover:shadow-[0_20px_50px_rgba(0,0,0,0.12)] hover:-translate-y-1.5 transition-all duration-500 cursor-pointer overflow-hidden",
                     viewMode === 'list' && "flex items-center gap-6 p-4"
                   )}
                   onClick={() => addItem(product)}
                 >
+                  {/* Glossy Shine Effect Overlay */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-20">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                  </div>
+
                   <div className={cn(
                     "bg-[#f5f5f7] flex items-center justify-center relative overflow-hidden transition-colors group-hover:bg-[#f0f0f2]",
                     viewMode === 'grid' ? "aspect-square w-full" : "w-24 h-24 rounded-2xl flex-shrink-0"
                   )}>
                     {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700" />
+                      <img src={product.image_url} alt={product.name} className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-1000" />
                     ) : (
                       <PackageX className="h-10 w-10 text-gray-300" />
                     )}
                     {product.stock_quantity < 5 && (
-                      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-black text-rose-500 shadow-sm border border-rose-100">
+                      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-black text-rose-500 shadow-sm border border-rose-100 z-10">
                         LOW STOCK
                       </div>
                     )}
                   </div>
                   
-                  <div className={cn("p-5", viewMode === 'list' && "flex-1 p-0")}>
+                  <div className={cn("p-5 relative z-10", viewMode === 'list' && "flex-1 p-0")}>
                     <h3 className="font-bold text-black group-hover:text-[#0071e3] transition-colors truncate text-[15px]">{product.name}</h3>
                     <div className="flex items-center justify-between mt-1">
                       <p className="text-xl font-black text-black">${product.price.toFixed(2)}</p>
@@ -157,8 +162,8 @@ export default function POSPage() {
                   </div>
                   
                   {viewMode === 'grid' && (
-                    <div className="absolute inset-0 bg-[#0071e3]/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                      <div className="bg-[#0071e3] text-white p-3.5 rounded-2xl shadow-2xl scale-75 group-hover:scale-100 transition-all duration-300">
+                    <div className="absolute inset-0 bg-[#0071e3]/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-30">
+                      <div className="bg-[#0071e3] text-white p-3.5 rounded-2xl shadow-2xl scale-75 group-hover:scale-100 transition-all duration-500">
                         <Plus className="h-6 w-6" />
                       </div>
                     </div>

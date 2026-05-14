@@ -175,12 +175,20 @@ export default function LandingPage() {
 
 function FeatureCard({ icon: Icon, title, description }: any) {
   return (
-    <div className="group p-8 rounded-3xl bg-[#f5f5f7] hover:bg-white transition-all border border-transparent hover:border-gray-100 hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)]">
-      <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center mb-8 shadow-sm group-hover:bg-[#0071e3] transition-colors">
-        <Icon className="h-6 w-6 text-[#1d1d1f] group-hover:text-white transition-colors" />
+    <div className="group p-10 rounded-[2.5rem] bg-white hover:bg-white transition-all duration-500 border border-gray-100 hover:border-[#0071e3]/20 hover:shadow-[0_40px_80px_rgba(0,0,0,0.08)] hover:-translate-y-2 relative overflow-hidden">
+      {/* Glossy Shine Effect */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/40 to-white/0 -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
       </div>
-      <h3 className="text-2xl font-bold mb-4 tracking-tight">{title}</h3>
-      <p className="text-[#86868b] leading-relaxed font-medium">{description}</p>
+
+      <div className="w-16 h-16 rounded-2xl bg-[#f5f5f7] flex items-center justify-center mb-10 shadow-sm group-hover:bg-[#0071e3] group-hover:shadow-lg group-hover:shadow-blue-500/20 transition-all duration-500 relative z-10">
+        <Icon className="h-8 w-8 text-[#1d1d1f] group-hover:text-white transition-all duration-500" />
+      </div>
+      <h3 className="text-2xl font-black mb-4 tracking-tight text-black relative z-10">{title}</h3>
+      <p className="text-[#86868b] leading-relaxed font-medium text-lg relative z-10">{description}</p>
+      
+      {/* Bottom accent line */}
+      <div className="absolute bottom-0 left-0 h-1 bg-[#0071e3] transition-all duration-500 w-0 group-hover:w-full" />
     </div>
   );
 }

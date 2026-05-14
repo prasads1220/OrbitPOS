@@ -202,6 +202,20 @@ export function CheckoutDialog({
     }
   };
 
+  useEffect(() => {
+    if (step === 'success' && receiptData) {
+      // Small delay to ensure the UI has rendered
+      const timer = setTimeout(() => {
+        handlePrint();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [step, receiptData]);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   const downloadReceipt = () => {
     if (!receiptData) return;
     
@@ -285,6 +299,76 @@ export function CheckoutDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px] p-0 max-h-[90vh] overflow-y-auto rounded-[2.5rem] border-none shadow-2xl bg-white">
         
+        {/* Printable Receipt (Hidden from screen) */}
+        <div id="printable-receipt" className="hidden print:block p-8 bg-white text-black font-mono text-[12px] w-[80mm]">
+          <style dangerouslySetInnerHTML={{ __html: `
+            @media print {
+              body * { visibility: hidden; }
+              #printable-receipt, #printable-receipt * { visibility: visible; }
+              #printable-receipt {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 80mm;
+                padding: 10mm;
+                background: white;
+              }
+              @page {
+                size: 80mm auto;
+                margin: 0;
+              }
+            }
+          `}} />
+          {receiptData && (
+            <div className="space-y-4">
+              <div className="text-center border-b pb-4 mb-4">
+                <h1 className="text-xl font-bold uppercase">OrbitPOS</h1>
+                <p className="text-[10px] font-medium opacity-70">Modern Retail Experience</p>
+                <p className="text-[10px] font-medium">{profile?.store_name || 'Store #1'}</p>
+              </div>
+
+              <div className="space-y-1 text-[10px]">
+                <p className="flex justify-between"><span>ORDER:</span> <span>#{receiptData.orderId.slice(0, 8)}</span></p>
+                <p className="flex justify-between"><span>DATE:</span> <span>{receiptData.date}</span></p>
+                <p className="flex justify-between"><span>METHOD:</span> <span>{receiptData.method.toUpperCase()}</span></p>
+              </div>
+
+              <div className="border-t border-b py-2 space-y-2">
+                <div className="flex justify-between font-bold">
+                  <span className="w-1/2">ITEM</span>
+                  <span className="w-1/4 text-center">QTY</span>
+                  <span className="w-1/4 text-right">TOTAL</span>
+                </div>
+                {receiptData.items.map((item, i) => (
+                  <div key={i} className="flex justify-between">
+                    <span className="w-1/2 truncate">{item.name}</span>
+                    <span className="w-1/4 text-center">x{item.quantity}</span>
+                    <span className="w-1/4 text-right">${(item.quantity * item.price).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-1 pt-2">
+                <p className="flex justify-between"><span>SUBTOTAL:</span> <span>${receiptData.subtotal.toFixed(2)}</span></p>
+                <p className="flex justify-between"><span>TAX (8%):</span> <span>${receiptData.tax.toFixed(2)}</span></p>
+                <p className="flex justify-between text-lg font-bold border-t pt-2"><span>TOTAL:</span> <span>${receiptData.total.toFixed(2)}</span></p>
+              </div>
+
+              {receiptData.method === 'cash' && (
+                <div className="space-y-1 border-t pt-2 opacity-80">
+                  <p className="flex justify-between"><span>CASH TENDERED:</span> <span>${(parseFloat(receiptData.cashTendered || '0') || receiptData.total).toFixed(2)}</span></p>
+                  <p className="flex justify-between"><span>CHANGE DUE:</span> <span>${(receiptData.changeDue || 0).toFixed(2)}</span></p>
+                </div>
+              )}
+
+              <div className="text-center pt-8 border-t border-dashed mt-8">
+                <p className="font-bold">THANK YOU FOR SHOPPING!</p>
+                <p className="text-[9px] mt-1 italic">Visit us again soon.</p>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Header Section */}
         <div className="p-10 bg-[#fbfbfd] border-b border-gray-50 relative">
           <Button 
@@ -458,17 +542,25 @@ export function CheckoutDialog({
                 The stock has been updated automatically.
               </p>
               
-              <div className="grid grid-cols-1 gap-4 w-full">
+              <div className="grid grid-cols-2 gap-4 w-full">
+                <Button 
+                  variant="outline" 
+                  className="h-14 rounded-2xl border-gray-100 text-black font-bold text-[15px] hover:bg-gray-50 shadow-sm" 
+                  onClick={handlePrint}
+                >
+                  <Receipt className="mr-2 h-5 w-5 text-gray-400" />
+                  Print Receipt
+                </Button>
                 <Button 
                   variant="outline" 
                   className="h-14 rounded-2xl border-gray-100 text-black font-bold text-[15px] hover:bg-gray-50 shadow-sm" 
                   onClick={downloadReceipt}
                 >
                   <Download className="mr-2 h-5 w-5 text-gray-400" />
-                  Save PDF Receipt
+                  Save PDF
                 </Button>
                 <Button 
-                  className="h-14 rounded-2xl bg-black hover:bg-gray-800 text-white font-bold text-[15px] shadow-xl" 
+                  className="h-14 rounded-2xl bg-black hover:bg-gray-800 text-white font-bold text-[15px] shadow-xl col-span-2" 
                   onClick={closeAndClear}
                 >
                   Next Order
