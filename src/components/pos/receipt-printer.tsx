@@ -63,7 +63,14 @@ export function ReceiptPrinter({ receiptData }: ReceiptPrinterProps) {
         <div className="space-y-1 text-[10px]">
           <p className="flex justify-between"><span>ORDER:</span> <span>#{receiptData.orderId.slice(0, 8)}</span></p>
           <p className="flex justify-between"><span>DATE:</span> <span>{receiptData.date}</span></p>
-          <p className="flex justify-between"><span>METHOD:</span> <span>{receiptData.method.toUpperCase()} {receiptData.cardLast4 ? `(*${receiptData.cardLast4})` : ''}</span></p>
+          <p className="flex justify-between uppercase">
+            <span>METHOD:</span> 
+            <span>
+              {receiptData.method === 'card' 
+                ? `${(receiptData as any).cardBrand || 'CARD'} **** ${receiptData.cardLast4 || '****'}` 
+                : receiptData.method}
+            </span>
+          </p>
         </div>
 
         <div className="border-t border-b py-2 space-y-2">

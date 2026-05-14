@@ -77,3 +77,26 @@ export async function getStorePublishableKey(storeId: string) {
 
   return store?.stripe_publishable_key || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
 }
+
+export async function getPaymentMethodDetails(storeId: string, paymentIntentId: string) {
+  try {
+    const stripe = await getStripeClient(storeId);
+    const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    
+    if (intent.payment_method) {
+      const pmId = typeof intent.payment_method === 'string' 
+        ? intent.payment_method 
+        : intent.payment_method.id;
+        
+      const pm = await stripe.paymentMethods.retrieve(pmId);
+      return {
+        last4: pm.card?.last4 || '',
+        brand: pm.card?.brand || '',
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching payment details:', error);
+    return null;
+  }
+}

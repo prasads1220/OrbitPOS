@@ -27,7 +27,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
-import { createPaymentIntent, getStorePublishableKey } from '@/app/actions/stripe';
+import { 
+  createPaymentIntent, 
+  getStorePublishableKey,
+  getPaymentMethodDetails 
+} from '@/app/actions/stripe';
 import StripePayment from './stripe-payment';
 import { ReceiptPrinter } from './receipt-printer';
 import { cn } from '@/lib/utils';
@@ -46,6 +50,7 @@ interface ReceiptData {
   discount: number;
   discountType: 'amount' | 'percentage';
   cardLast4?: string;
+  cardBrand?: string;
   cashTendered?: string;
   changeDue?: number;
 }
@@ -112,7 +117,7 @@ export function CheckoutDialog({
     setCashTendered(amount.toFixed(2));
   };
 
-  const finalizeOrder = async (stripeId?: string, last4?: string) => {
+  const finalizeOrder = async (stripeId?: string, last4?: string, brand?: string) => {
     if (!profile?.store_id) {
       toast.error('Store ID not found. Please log in again.');
       return;
@@ -185,6 +190,7 @@ export function CheckoutDialog({
         discount,
         discountType,
         cardLast4: last4,
+        cardBrand: brand,
         cashTendered: method === 'cash' ? cashTendered : undefined,
         changeDue: method === 'cash' ? changeDue : undefined
       });
@@ -326,8 +332,20 @@ export function CheckoutDialog({
     onOpenChange(false);
   };
 
-  const handleStripeSuccess = (intentId: string, last4?: string) => {
-    finalizeOrder(intentId, last4);
+  const handleStripeSuccess = async (intentId: string, last4?: string, brand?: string) => {
+    let finalLast4 = last4;
+    let finalBrand = brand;
+
+    // If details are missing, fetch them from server
+    if (!finalLast4 && profile?.store_id) {
+      const details = await getPaymentMethodDetails(profile.store_id, intentId);
+      if (details) {
+        finalLast4 = details.last4;
+        finalBrand = details.brand;
+      }
+    }
+
+    finalizeOrder(intentId, finalLast4, finalBrand);
   };
 
   return (
