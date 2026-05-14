@@ -176,52 +176,59 @@ export default function POSPage() {
         </ScrollArea>
       </div>
 
-      {/* Cart / Checkout */}
-      <div className="w-full lg:w-[400px] flex flex-col h-[calc(100vh-120px)] bg-white rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.06)] border border-gray-100 overflow-hidden shrink-0 sticky top-0">
-        <div className="p-8 border-b border-gray-50 flex items-center justify-between bg-[#fbfbfd]/50">
+      {/* Cart / Checkout Sidebar */}
+      <div className="w-full lg:w-[400px] flex flex-col h-[calc(100vh-110px)] bg-white rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.08)] border border-gray-100 overflow-hidden shrink-0 sticky top-0">
+        {/* Cart Header */}
+        <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between bg-[#fbfbfd]/80 backdrop-blur-md shrink-0">
           <div>
-            <h2 className="font-black text-xl text-black tracking-tight">Current Order</h2>
-            <p className="text-[12px] text-gray-400 font-medium">{items.length} items in cart</p>
+            <h2 className="font-black text-lg text-black tracking-tight">Current Order</h2>
+            <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">{items.length} items</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={clearCart} className="text-gray-300 hover:text-rose-500 hover:bg-rose-50 h-10 w-10 rounded-xl transition-colors">
-            <Trash2 className="h-5 w-5" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={clearCart} 
+            className="text-gray-300 hover:text-rose-500 hover:bg-rose-50 h-9 w-9 rounded-xl transition-all active:scale-90"
+          >
+            <Trash2 className="h-4.5 w-4.5" />
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 p-8">
+        {/* Scrollable Cart Items */}
+        <ScrollArea className="flex-1 min-h-0 px-6">
           {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-300 py-20 text-center animate-in fade-in duration-500">
-              <div className="w-20 h-20 bg-[#f5f5f7] rounded-[2rem] flex items-center justify-center mb-6 border border-gray-50">
-                <ShoppingCart className="h-10 w-10 opacity-20" />
+            <div className="flex flex-col items-center justify-center h-full text-gray-300 py-12 text-center animate-in fade-in duration-500">
+              <div className="w-16 h-16 bg-[#f5f5f7] rounded-2xl flex items-center justify-center mb-4 border border-gray-50">
+                <ShoppingCart className="h-8 w-8 opacity-20" />
               </div>
-              <p className="font-black text-gray-400 text-lg tracking-tight">Cart is empty</p>
-              <p className="text-[13px] mt-2 font-medium leading-relaxed">Select products to start <br /> a new checkout.</p>
+              <p className="font-black text-gray-400 text-md tracking-tight">Cart is empty</p>
+              <p className="text-[12px] mt-1 font-medium opacity-60">Add products to start.</p>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="py-6 space-y-5">
               {items.map((item) => (
                 <div key={item.id} className="flex items-center justify-between group animate-in slide-in-from-right-4 duration-300">
                   <div className="flex-1 min-w-0 pr-4">
-                    <p className="text-[14px] font-bold text-black truncate mb-0.5">{item.name}</p>
-                    <p className="text-[13px] font-black text-[#0071e3]">${item.price.toFixed(2)}</p>
+                    <p className="text-[13px] font-bold text-black truncate mb-0.5">{item.name}</p>
+                    <p className="text-[12px] font-black text-[#0071e3]">${item.price.toFixed(2)}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center bg-[#f5f5f7] rounded-xl p-1 border border-gray-50 shadow-sm">
+                    <div className="flex items-center bg-[#f5f5f7] rounded-xl p-1 border border-gray-100 shadow-sm">
                       <button 
-                        className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg transition-all disabled:opacity-30" 
+                        className="p-1 hover:bg-white hover:shadow-sm rounded-lg transition-all disabled:opacity-30" 
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
                       >
-                        <Minus className="h-3.5 w-3.5" />
+                        <Minus className="h-3 w-3" />
                       </button>
-                      <span className="px-3 text-[13px] font-black min-w-8 text-center">{item.quantity}</span>
+                      <span className="px-2 text-[12px] font-black min-w-6 text-center">{item.quantity}</span>
                       <button 
-                        className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg transition-all" 
+                        className="p-1 hover:bg-white hover:shadow-sm rounded-lg transition-all" 
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
                       >
-                        <Plus className="h-3.5 w-3.5" />
+                        <Plus className="h-3 w-3" />
                       </button>
                     </div>
-                    <p className="text-[14px] font-black min-w-16 text-right text-black">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="text-[13px] font-black min-w-14 text-right text-black">${(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 </div>
               ))}
@@ -229,105 +236,89 @@ export default function POSPage() {
           )}
         </ScrollArea>
 
-        <div className="p-8 bg-[#fbfbfd] border-t border-gray-50 space-y-6">
-          <div className="space-y-3">
-            <div className="flex justify-between text-[14px] text-gray-500 font-bold">
+        {/* Cart Footer (Totals & Checkout) */}
+        <div className="px-6 py-6 bg-[#fbfbfd] border-t border-gray-100 space-y-5 shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)]">
+          {/* Totals Breakdown */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-[13px] text-gray-400 font-bold">
               <span>Subtotal</span>
               <span className="text-black">${subtotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-[14px] text-gray-500 font-bold">
+            <div className="flex justify-between text-[13px] text-gray-400 font-bold">
               <span>Tax (8%)</span>
               <span className="text-black">${tax.toFixed(2)}</span>
             </div>
-              <div className="bg-rose-50/20 rounded-2xl p-3 space-y-3 border border-rose-100/30">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-rose-500 uppercase tracking-wider">Discount</span>
-                    <div className="flex bg-white/50 p-1 rounded-lg border border-rose-100/50 scale-90 origin-left">
-                      <button 
-                        onClick={() => setDiscount(discount, 'amount')}
-                        className={cn(
-                          "px-2 py-0.5 rounded-md text-[10px] font-bold transition-all", 
-                          discountType === 'amount' ? "bg-rose-500 text-white shadow-sm" : "text-rose-400 hover:text-rose-500"
-                        )}
-                      >
-                        $
-                      </button>
-                      <button 
-                        onClick={() => setDiscount(discount, 'percentage')}
-                        className={cn(
-                          "px-2 py-0.5 rounded-md text-[10px] font-bold transition-all", 
-                          discountType === 'percentage' ? "bg-rose-500 text-white shadow-sm" : "text-rose-400 hover:text-rose-500"
-                        )}
-                      >
-                        %
-                      </button>
-                    </div>
-                  </div>
-                  <span className="text-[12px] font-black text-rose-500">
-                    -{discountType === 'percentage' ? `${discount}%` : `$${discount.toFixed(2)}`}
-                  </span>
-                </div>
-                
-                <div className="flex flex-wrap gap-1.5">
-                  {[10, 20, 50].map((pct) => (
-                    <button
-                      key={pct}
-                      onClick={() => setDiscount(pct, 'percentage')}
-                      className={cn(
-                        "px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all active:scale-95 border",
-                        discount === pct && discountType === 'percentage'
-                          ? "bg-rose-500 text-white border-rose-500 shadow-sm"
-                          : "bg-white text-rose-500 border-rose-100 hover:bg-rose-50"
-                      )}
+            
+            {/* Compact Discount UI */}
+            <div className="bg-rose-50/30 rounded-xl p-3 border border-rose-100/40">
+              <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Discount</span>
+                  <div className="flex bg-white/60 p-0.5 rounded-lg border border-rose-100/50">
+                    <button 
+                      onClick={() => setDiscount(discount, 'amount')}
+                      className={cn("px-1.5 py-0.5 rounded-md text-[9px] font-bold transition-all", discountType === 'amount' ? "bg-rose-500 text-white" : "text-rose-400")}
                     >
-                      {pct}%
+                      $
                     </button>
-                  ))}
-                  <div className="relative flex-1 min-w-[120px]">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-400 font-bold text-[10px] pointer-events-none transition-colors">
-                      {discountType === 'percentage' ? '%' : '$'}
-                    </div>
-                    <input 
-                      type="number"
-                      placeholder="Manual..."
-                      className="w-full bg-white border border-rose-100 rounded-xl pl-7 pr-3 py-1.5 text-[11px] font-bold focus:ring-1 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      value={discount || ''}
-                      onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                    />
+                    <button 
+                      onClick={() => setDiscount(discount, 'percentage')}
+                      className={cn("px-1.5 py-0.5 rounded-md text-[9px] font-bold transition-all", discountType === 'percentage' ? "bg-rose-500 text-white" : "text-rose-400")}
+                    >
+                      %
+                    </button>
                   </div>
                 </div>
+                <span className="text-[12px] font-black text-rose-500">
+                  -{discountType === 'percentage' ? `${discount}%` : `$${discount.toFixed(2)}`}
+                </span>
+              </div>
+              <div className="flex gap-1.5">
+                {[10, 20, 50].map((pct) => (
+                  <button
+                    key={pct}
+                    onClick={() => setDiscount(pct, 'percentage')}
+                    className={cn(
+                      "flex-1 py-1 rounded-lg text-[10px] font-bold border transition-all",
+                      discount === pct && discountType === 'percentage' ? "bg-rose-500 text-white border-rose-500" : "bg-white text-rose-500 border-rose-100"
+                    )}
+                  >
+                    {pct}%
+                  </button>
+                ))}
+                <input 
+                  type="number"
+                  placeholder="Manual"
+                  className="w-16 bg-white border border-rose-100 rounded-lg px-2 py-1 text-[10px] font-bold focus:ring-1 focus:ring-rose-500/20 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  value={discount || ''}
+                  onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                />
               </div>
             </div>
           </div>
-          
-        <div className="px-8 pb-8 bg-[#fbfbfd] space-y-4">
-          <div className="pt-4 border-t border-dashed border-gray-200">
+
+          {/* Grand Total */}
+          <div className="pt-2 border-t border-dashed border-gray-200">
             <div className="flex justify-between items-center">
-               <span className="text-lg font-black text-black uppercase tracking-widest">Total Due</span>
-               <span className="text-3xl font-black text-[#0071e3] tracking-tighter">${total.toFixed(2)}</span>
+              <span className="text-sm font-black text-black uppercase tracking-widest">Total Due</span>
+              <span className="text-3xl font-black text-[#0071e3] tracking-tighter">${total.toFixed(2)}</span>
             </div>
           </div>
 
+          {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-3">
             <Button 
               variant="outline" 
-              className="h-14 rounded-2xl border-gray-200 text-black font-black text-[14px] transition-all active:scale-95 shadow-sm hover:bg-white hover:border-[#0071e3] hover:text-[#0071e3]"
-              onClick={() => {
-                setInitialMethod('cash');
-                setCheckoutOpen(true);
-              }} 
+              className="h-12 rounded-2xl border-gray-200 text-black font-black text-[13px] hover:border-[#0071e3] hover:text-[#0071e3] transition-all active:scale-95"
+              onClick={() => { setInitialMethod('cash'); setCheckoutOpen(true); }} 
               disabled={items.length === 0}
             >
               <Banknote className="mr-2 h-5 w-5" />
               CASH
             </Button>
             <Button 
-              className="h-14 rounded-2xl bg-black hover:bg-gray-800 text-white font-black text-[14px] transition-all active:scale-95 shadow-2xl shadow-black/20" 
-              onClick={() => {
-                setInitialMethod('card');
-                setCheckoutOpen(true);
-              }} 
+              className="h-12 rounded-2xl bg-black hover:bg-gray-900 text-white font-black text-[13px] shadow-lg shadow-black/10 transition-all active:scale-95" 
+              onClick={() => { setInitialMethod('card'); setCheckoutOpen(true); }} 
               disabled={items.length === 0}
             >
               <CreditCard className="mr-2 h-5 w-5" />
@@ -335,11 +326,12 @@ export default function POSPage() {
             </Button>
           </div>
           
-          <Button variant="ghost" className="w-full text-gray-400 font-black text-[10px] h-8 hover:text-[#0071e3] hover:bg-blue-50/50 rounded-xl uppercase tracking-widest">
-            <UserPlus className="mr-2 h-4 w-4" />
+          <Button variant="ghost" className="w-full text-gray-400 font-black text-[9px] h-6 hover:text-[#0071e3] rounded-xl uppercase tracking-widest">
+            <UserPlus className="mr-1.5 h-3.5 w-3.5" />
             Assign Customer
           </Button>
         </div>
+
         <CheckoutDialog 
           open={checkoutOpen} 
           onOpenChange={setCheckoutOpen}
