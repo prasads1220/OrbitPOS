@@ -42,6 +42,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { voidOrder, refundOrder } from '@/app/actions/orders';
 import { toast } from 'sonner';
 import { ReceiptPrinter } from '@/components/pos/receipt-printer';
+import { cn } from '@/lib/utils';
 
 export default function OrdersPage() {
   const { profile } = useAuthStore();
@@ -54,6 +55,8 @@ export default function OrdersPage() {
   const [refundItems, setRefundItems] = useState<Record<string, number>>({});
   const [actionLoading, setActionLoading] = useState(false);
   const [receiptData, setReceiptData] = useState<any | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     if (profile?.store_id) {
@@ -72,10 +75,9 @@ export default function OrdersPage() {
           total_amount,
           tax_amount,
           discount_amount,
-          payment_method,
           payment_status,
           created_at,
-          profiles:cashier_id ( full_name ),
+          cashier:profiles!cashier_id ( full_name ),
           order_items (
             id,
             quantity,
@@ -99,8 +101,15 @@ export default function OrdersPage() {
 
   const filteredOrders = orders.filter(o => 
     o.id.toLowerCase().includes(search.toLowerCase()) || 
-    (o.profiles?.full_name || '').toLowerCase().includes(search.toLowerCase())
+    (o.cashier?.full_name || '').toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const paginatedOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const exportOrders = () => {
     const data = filteredOrders.map(o => ({
@@ -242,7 +251,7 @@ export default function OrdersPage() {
       tax: order.tax_amount || 0,
       discount: order.discount_amount || 0,
       total: order.total_amount,
-      cashierName: order.profiles?.full_name || 'System',
+      cashierName: order.cashier?.full_name || 'System',
       type: 'sale'
     });
   };
@@ -517,7 +526,7 @@ export default function OrdersPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredOrders.map((order) => {
+              paginatedOrders.map((order) => {
                 const totalItems = order.order_items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
                 
                 return (
@@ -534,7 +543,7 @@ export default function OrdersPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="font-medium text-gray-600">{order.profiles?.full_name || 'System'}</span>
+                      <span className="font-medium text-gray-600">{order.cashier?.full_name || 'System'}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
@@ -591,6 +600,51 @@ export default function OrdersPage() {
             )}
           </TableBody>
         </Table>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="px-8 py-4 bg-[#fbfbfd] border-t border-gray-100 flex items-center justify-between">
+            <p className="text-[13px] text-gray-400 font-medium">
+              Showing <span className="text-black font-bold">{Math.min(filteredOrders.length, (currentPage - 1) * itemsPerPage + 1)}-{Math.min(filteredOrders.length, currentPage * itemsPerPage)}</span> of <span className="text-black font-bold">{filteredOrders.length}</span> orders
+            </p>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="rounded-xl border-gray-100 h-9 font-bold disabled:opacity-50"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <div className="flex items-center gap-1 mx-2">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? 'default' : 'ghost'}
+                    size="sm"
+                    className={cn(
+                      "h-8 w-8 rounded-lg font-bold text-[13px]",
+                      currentPage === page ? "bg-black text-white" : "text-gray-400 hover:text-black"
+                    )}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </Button>
+                ))}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="rounded-xl border-gray-100 h-9 font-bold disabled:opacity-50"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
