@@ -79,12 +79,12 @@ export default function SupportPage() {
             <div className="lg:col-span-7 bg-[#f5f5f7] rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-2xl shadow-gray-100">
               <div className="p-12 md:p-20">
                 <form 
-                  action="https://formsubmit.co/orbitpossales@gmail.com" 
+                  action="https://formspree.io/f/orbitpossales@gmail.com" 
                   method="POST"
                   onSubmit={handleSubmit}
                   className="space-y-6"
                 >
-                  {/* FormSubmit Configuration */}
+                  {/* Formspree Configuration */}
                   <input type="hidden" name="_subject" value="New OrbitPOS Support Ticket" />
                   <input type="hidden" name="_template" value="table" />
                   <input type="hidden" name="_captcha" value="false" />
