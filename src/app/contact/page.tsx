@@ -38,16 +38,43 @@ export default function ContactPage() {
         message: formData.message
       });
 
-      if (error) {
-        console.warn('Supabase save failed, but proceeding with email:', error);
+      if (error) throw error;
+
+      // 2. Submit to Formspree via AJAX
+      const response = await fetch("https://formspree.io/f/mgodgewr", {
+        method: "POST",
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          company: formData.company,
+          message: formData.message
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Formspree submission failed');
       }
 
-      // 2. Trigger the real form submission to FormSubmit
-      (e.target as HTMLFormElement).submit();
+      toast.success('Message sent successfully! We will get back to you soon.');
+      
+      // 3. Reset form
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        company: '',
+        message: ''
+      });
     } catch (error: any) {
       console.error('Contact form error:', error);
-      // Even if DB fails, we try to submit the form anyway
-      (e.target as HTMLFormElement).submit();
+      toast.error(`Submission error: ${error.message || 'Please try again'}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -102,16 +129,9 @@ export default function ContactPage() {
             {/* Contact Form */}
             <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-gray-100 animate-in fade-in slide-in-from-right-4 duration-1000 delay-400">
               <form 
-                action="https://formspree.io/f/mgodgewr" 
-                method="POST"
                 onSubmit={handleSubmit}
                 className="space-y-6"
               >
-                {/* Formspree Configuration */}
-                <input type="hidden" name="_subject" value="New OrbitPOS Contact Lead" />
-                <input type="hidden" name="_template" value="table" />
-                <input type="hidden" name="_captcha" value="false" />
-                <input type="hidden" name="_next" value="https://orbit-pos.vercel.app/contact" />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">

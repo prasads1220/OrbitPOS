@@ -30,16 +30,41 @@ export default function SupportPage() {
         message: formData.description
       });
 
-      if (error) {
-        console.warn('Supabase save failed, but proceeding with email:', error);
+      if (error) throw error;
+
+      // 2. Submit to Formspree via AJAX
+      const response = await fetch("https://formspree.io/f/mgodgewr", {
+        method: "POST",
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          storeName: formData.storeName,
+          email: formData.email,
+          issueType: formData.issueType,
+          description: formData.description
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Formspree submission failed');
       }
 
-      // Trigger the real form submission to FormSubmit
-      (e.target as HTMLFormElement).submit();
+      toast.success('Support ticket submitted successfully! We will get back to you within 2 hours.');
+      
+      // 3. Reset form
+      setFormData({
+        storeName: '',
+        email: '',
+        issueType: 'Technical Issue',
+        description: ''
+      });
     } catch (error: any) {
       console.error('Support form error:', error);
-      // Fallback submission
-      (e.target as HTMLFormElement).submit();
+      toast.error(`Submission error: ${error.message || 'Please try again'}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -79,16 +104,9 @@ export default function SupportPage() {
             <div className="lg:col-span-7 bg-[#f5f5f7] rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-2xl shadow-gray-100">
               <div className="p-12 md:p-20">
                 <form 
-                  action="https://formspree.io/f/mgodgewr" 
-                  method="POST"
                   onSubmit={handleSubmit}
                   className="space-y-6"
                 >
-                  {/* Formspree Configuration */}
-                  <input type="hidden" name="_subject" value="New OrbitPOS Support Ticket" />
-                  <input type="hidden" name="_template" value="table" />
-                  <input type="hidden" name="_captcha" value="false" />
-                  <input type="hidden" name="_next" value="https://orbit-pos.vercel.app/support" />
 
                   <div className="space-y-2">
                     <label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1">Store Name</label>
