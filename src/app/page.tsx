@@ -57,13 +57,13 @@ export default function LandingPage() {
 
             {/* Premium Asset Preview */}
             <div className="relative mx-auto max-w-4xl animate-in fade-in zoom-in-95 duration-1000 delay-300">
-              <div className="relative p-2 rounded-[2.5rem] bg-gradient-to-b from-white/80 to-white/20 backdrop-blur-xl border border-white shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)]">
+              <div className="relative p-2 rounded-[2.5rem] bg-gradient-to-b from-white/80 to-white/20 backdrop-blur-xl border border-white shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] animate-float-subtle">
                 <Image 
                   src="/images/hero-branded.png" 
                   alt="OrbitPOS Interface" 
                   width={1000} 
                   height={600} 
-                  className="rounded-[2rem] shadow-sm w-full"
+                  className="rounded-[2rem] shadow-sm w-full hover-glow transition-all"
                   priority
                 />
               </div>
@@ -177,7 +177,7 @@ export default function LandingPage() {
 
 function FeatureCard({ icon: Icon, title, description }: any) {
   return (
-    <div className="group p-10 rounded-[2.5rem] bg-white hover:bg-white transition-all duration-500 border border-gray-100 hover:border-[#0071e3]/20 hover:shadow-[0_40px_80px_rgba(0,0,0,0.08)] hover:-translate-y-2 relative overflow-hidden">
+    <div className="group p-10 rounded-[2.5rem] bg-white transition-all duration-500 border border-gray-100 card-hover-effect relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Glossy Shine Effect */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/40 to-white/0 -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-1000" />

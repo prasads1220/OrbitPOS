@@ -167,6 +167,43 @@
   animation: float 6s ease-in-out infinite;
 }
 
+@keyframes float-subtle {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float-subtle {
+  animation: float-subtle 4s ease-in-out infinite;
+}
+
+.hover-glow {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-glow:hover {
+  filter: drop-shadow(0 0 15px rgba(0, 113, 227, 0.3));
+}
+
+.card-hover-effect {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover-effect:hover {
+  transform: translateY(-8px) scale(1.01);
+  box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(0, 113, 227, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 113, 227, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 113, 227, 0); }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
 @keyframes shine {
   from { left: -100%; }
   to { left: 100%; }
