@@ -22,12 +22,12 @@ import Image from 'next/image';
 
 export default function SupportPage() {
   const mockups = [
-    '/pos-mockup-1.png',
-    '/pos-mockup-2.png',
-    '/pos-mockup-3.png',
-    '/pos-mockup-1.png',
-    '/pos-mockup-2.png',
-    '/pos-mockup-3.png',
+    '/support-mockup-1.png',
+    '/support-mockup-2.png',
+    '/support-mockup-3.png',
+    '/support-mockup-4.png',
+    '/support-mockup-5.png',
+    '/support-mockup-6.png',
   ];
 
   return (

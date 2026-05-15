@@ -132,9 +132,9 @@ export default function LandingPage() {
               '/pos-mockup-1.png',
               '/pos-mockup-2.png',
               '/pos-mockup-3.png',
-              '/pos-mockup-1.png',
-              '/pos-mockup-2.png',
-              '/pos-mockup-3.png',
+              '/pos-mockup-4.png',
+              '/pos-mockup-5.png',
+              '/pos-mockup-6.png',
             ].map((src, i) => (
               <div key={i} className="relative w-[500px] md:w-[700px] aspect-video shrink-0 rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-[0_20px_50px_rgba(0,0,0,0.08)] group">
                 <Image 
