@@ -117,12 +117,14 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              <div className="p-8 rounded-3xl bg-[#f5f5f7] border border-gray-100">
+              <div className="p-8 rounded-3xl bg-[#f5f5f7] border border-gray-100 card-hover-effect relative overflow-hidden">
                 <h3 className="text-xl font-bold mb-4 tracking-tight">Enterprise Solutions</h3>
                 <p className="text-[#86868b] font-medium mb-6">Looking for custom integrations or multi-region support? Our enterprise team is ready to assist.</p>
                 <Button variant="link" className="p-0 h-auto text-[#0071e3] font-semibold hover:no-underline flex items-center gap-2">
                   Learn about Enterprise <Globe className="w-4 h-4" />
                 </Button>
+                {/* Bottom accent line */}
+                <div className="absolute bottom-0 left-0 h-1 bg-[#0071e3] transition-all duration-500 w-0 group-hover:w-full" />
               </div>
             </div>
 
@@ -202,7 +204,7 @@ export default function ContactPage() {
                 <Button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="w-full h-14 rounded-2xl bg-black hover:bg-gray-900 text-white font-bold text-lg transition-all shadow-xl"
+                  className="glossy-button w-full h-14 rounded-2xl bg-black hover:bg-gray-900 text-white font-bold text-lg shadow-xl"
                 >
                   {isSubmitting ? "Processing..." : "Send Message"}
                 </Button>
@@ -219,15 +221,17 @@ export default function ContactPage() {
 
 function ContactMethod({ icon: Icon, title, description, value }: { icon: any, title: string, description: string, value: string }) {
   return (
-    <div className="flex gap-6 group">
-      <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-[#f5f5f7] flex items-center justify-center group-hover:bg-[#0071e3]/10 transition-colors">
-        <Icon className="w-6 h-6 text-[#0071e3]" />
+    <div className="flex gap-6 group p-6 rounded-3xl bg-white border border-gray-100 card-hover-effect relative overflow-hidden transition-all duration-500">
+      <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-[#f5f5f7] flex items-center justify-center group-hover:bg-[#0071e3] shadow-sm transition-all duration-500 relative z-10">
+        <Icon className="w-6 h-6 text-[#0071e3] group-hover:text-white transition-all duration-500" />
       </div>
-      <div>
+      <div className="relative z-10">
         <h3 className="text-lg font-bold tracking-tight mb-1">{title}</h3>
         <p className="text-[#86868b] font-medium text-[15px] mb-1">{description}</p>
         <p className="text-black font-semibold">{value}</p>
       </div>
+      {/* Bottom accent line */}
+      <div className="absolute bottom-0 left-0 h-1 bg-[#0071e3] transition-all duration-500 w-0 group-hover:w-full" />
     </div>
   );
 }

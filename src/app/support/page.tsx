@@ -208,12 +208,15 @@ export default function SupportPage() {
 
 function SupportFeature({ icon: Icon, title, description }: { icon: any, title: string, description: string }) {
   return (
-    <div className="p-8 rounded-[2rem] bg-white border border-gray-100 hover:shadow-xl hover:shadow-gray-100 transition-all group">
-      <div className="w-14 h-14 rounded-2xl bg-[#f5f5f7] flex items-center justify-center mb-6 group-hover:bg-[#0071e3] transition-colors">
-        <Icon className="w-7 h-7 text-[#0071e3] group-hover:text-white transition-colors" />
+    <div className="p-8 rounded-[2rem] bg-white border border-gray-100 card-hover-effect transition-all group relative overflow-hidden animate-in fade-in slide-in-from-right-4 duration-700">
+      <div className="w-14 h-14 rounded-2xl bg-[#f5f5f7] flex items-center justify-center mb-6 group-hover:bg-[#0071e3] shadow-sm transition-all duration-500 relative z-10">
+        <Icon className="w-7 h-7 text-[#0071e3] group-hover:text-white transition-all duration-500" />
       </div>
-      <h3 className="text-xl font-bold mb-2 tracking-tight">{title}</h3>
-      <p className="text-[#86868b] leading-relaxed font-medium">{description}</p>
+      <h3 className="text-xl font-bold mb-2 tracking-tight relative z-10">{title}</h3>
+      <p className="text-[#86868b] leading-relaxed font-medium relative z-10">{description}</p>
+      
+      {/* Bottom accent line */}
+      <div className="absolute bottom-0 left-0 h-1 bg-[#0071e3] transition-all duration-500 w-0 group-hover:w-full" />
     </div>
   );
 }

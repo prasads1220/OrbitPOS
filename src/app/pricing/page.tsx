@@ -120,7 +120,7 @@ export default function PricingPage() {
 
 function PricingCard({ tier, price, description, features, highlighted, buttonText, href }: any) {
   return (
-    <div className={`p-10 rounded-[2.5rem] flex flex-col transition-all duration-500 hover:scale-[1.02] ${
+    <div className={`p-10 rounded-[2.5rem] flex flex-col transition-all duration-500 card-hover-effect relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 ${
       highlighted 
         ? 'bg-black text-white shadow-[0_40px_100px_rgba(0,0,0,0.15)] ring-4 ring-blue-500/20' 
         : 'bg-[#f5f5f7] border border-gray-100'
@@ -150,7 +150,7 @@ function PricingCard({ tier, price, description, features, highlighted, buttonTe
       </div>
 
       <Link href={href}>
-        <Button className={`w-full h-14 rounded-full text-lg font-bold transition-all ${
+        <Button className={`glossy-button w-full h-14 rounded-full text-lg font-bold transition-all ${
           highlighted 
             ? 'bg-[#0071e3] hover:bg-[#0077ed] text-white shadow-lg shadow-blue-500/20' 
             : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
@@ -158,6 +158,9 @@ function PricingCard({ tier, price, description, features, highlighted, buttonTe
           {buttonText}
         </Button>
       </Link>
+      
+      {/* Bottom accent line */}
+      <div className="absolute bottom-0 left-0 h-1 bg-[#0071e3] transition-all duration-500 w-0 group-hover:w-full" />
     </div>
   );
 }
