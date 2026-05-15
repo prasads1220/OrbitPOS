@@ -41,6 +41,8 @@ export function CreateEmployeeDialog({ onSuccess }: CreateEmployeeDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('--- Employee Submission Started ---');
+    console.log('FormData:', formData);
     setLoading(true);
 
     if (!profile?.store_id) {
@@ -178,6 +180,7 @@ export function CreateEmployeeDialog({ onSuccess }: CreateEmployeeDialogProps) {
           </div>
 
           <Button 
+            type="submit"
             className="w-full h-14 rounded-2xl bg-black hover:bg-gray-800 text-white font-bold text-lg transition-all active:scale-[0.98] shadow-xl" 
             disabled={loading}
           >
