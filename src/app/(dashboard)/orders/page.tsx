@@ -191,7 +191,7 @@ export default function OrdersPage() {
     <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Hidden Receipt Printer for Thermal Printing */}
       <div className="hidden">
-        {receiptData && <ReceiptPrinter data={receiptData} id="printable-receipt" />}
+        {receiptData && <ReceiptPrinter receiptData={receiptData} />}
       </div>
 
       <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-8">
