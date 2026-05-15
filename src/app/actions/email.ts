@@ -49,11 +49,23 @@ export async function sendSubmissionEmail(data: SubmissionData) {
       </div>
     `;
 
+    const timestamp = new Date().toLocaleString();
+    const subject = data.type === 'contact' 
+      ? `[Lead] ${data.firstName} ${data.lastName} - ${timestamp}`
+      : `[Support] ${data.storeName} - ${timestamp}`;
+
     const { data: resData, error } = await resend.emails.send({
-      from: 'OrbitPOS <onboarding@resend.dev>',
-      to: 'orbitpossales@gmail.com',
+      from: 'OrbitPOS Support <onboarding@resend.dev>',
+      to: ['orbitpossales@gmail.com'],
+      replyTo: data.email,
       subject: subject,
       html: html,
+      tags: [
+        {
+          name: 'category',
+          value: data.type,
+        },
+      ],
     });
 
     if (error) {
@@ -63,6 +75,10 @@ export async function sendSubmissionEmail(data: SubmissionData) {
         error: error.message,
         name: error.name
       };
+    }
+
+    if (resData) {
+      console.log('Email sent successfully. ID:', resData.id);
     }
 
     return { success: true, data: resData };
