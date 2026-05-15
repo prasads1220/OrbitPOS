@@ -43,12 +43,12 @@ export default function LandingPage() {
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-20">
                 <Link href="/contact">
-                  <Button size="lg" className="bg-[#0071e3] hover:bg-[#0077ed] text-white rounded-full px-12 h-14 text-lg font-semibold transition-all hover:scale-[1.02] shadow-lg shadow-blue-500/10">
+                  <Button size="lg" className="glossy-button bg-[#0071e3] hover:bg-[#0077ed] text-white rounded-full px-12 h-14 text-lg font-semibold shadow-lg shadow-blue-500/10">
                     Schedule a Demo
                   </Button>
                 </Link>
                 <Link href="/login">
-                  <Button size="lg" variant="ghost" className="rounded-full px-12 h-14 text-lg font-semibold transition-all hover:bg-gray-200/50">
+                  <Button size="lg" variant="ghost" className="glossy-button rounded-full px-12 h-14 text-lg font-semibold hover:bg-gray-200/50">
                     Sign In to Store
                   </Button>
                 </Link>
@@ -162,7 +162,7 @@ export default function LandingPage() {
             <h2 className="text-4xl md:text-6xl font-bold mb-8 tracking-tight">Ready to elevate your store?</h2>
             <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto font-medium">Join thousands of retailers who have simplified their checkout experience with OrbitPOS.</p>
             <Link href="/contact">
-              <Button size="lg" className="bg-white text-black hover:bg-gray-100 rounded-full px-12 h-14 text-lg font-bold transition-all">
+              <Button size="lg" className="glossy-button bg-white text-black hover:bg-gray-100 rounded-full px-12 h-14 text-lg font-bold">
                 Contact our Sales Team
               </Button>
             </Link>
