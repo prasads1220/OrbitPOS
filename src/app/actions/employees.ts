@@ -21,6 +21,7 @@ export async function createEmployee(formData: {
   store_id: string;
   password?: string;
 }) {
+  try {
     // Validate Pay Rate
     const payRate = Number(formData.hourly_rate);
     if (isNaN(payRate)) throw new Error('Invalid hourly rate provided');
