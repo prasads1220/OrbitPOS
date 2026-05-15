@@ -326,13 +326,20 @@ export default function SchedulePage() {
                     <TableCell className="py-8 pr-8 align-top">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {dateShifts.map((shift: any) => (
-                          <div key={shift.id} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex items-center gap-4 group transition-all hover:border-blue-200">
-                            <div className="w-10 h-10 rounded-lg bg-[#0071e3] text-white flex items-center justify-center font-black text-sm">{shift.employee?.full_name?.charAt(0)}</div>
-                            <div className="flex-1 min-w-0">
-                               <p className="font-bold text-black text-[15px] truncate">{shift.employee?.full_name}</p>
-                               <div className="flex items-center gap-2 text-[12px] font-bold text-gray-500">
+                          <div 
+                            key={shift.id} 
+                            className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex items-center gap-4 group transition-all hover:border-blue-500/30 hover:shadow-md"
+                          >
+                            <div className="w-12 h-12 rounded-2xl bg-[#0071e3] text-white flex items-center justify-center font-black text-lg shadow-lg shadow-blue-500/20 shrink-0">
+                               {shift.employee?.full_name?.charAt(0)}
+                            </div>
+                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                               <p className="font-black text-black text-base truncate leading-tight uppercase tracking-tight">{shift.employee?.full_name}</p>
+                               <div className="flex items-center gap-2 mt-1">
                                   <Clock className="h-3.5 w-3.5 text-[#0071e3]" />
-                                  {format(parseISO(shift.start_time), 'HH:mm')} - {format(parseISO(shift.end_time), 'HH:mm')}
+                                  <span className="text-[12px] font-bold text-gray-400">
+                                    {format(parseISO(shift.start_time), 'hh:mm a')} — {format(parseISO(shift.end_time), 'hh:mm a')}
+                                  </span>
                                </div>
                                {shift.note && <p className="text-[11px] text-gray-400 mt-1 italic line-clamp-1">{shift.note}</p>}
                             </div>
