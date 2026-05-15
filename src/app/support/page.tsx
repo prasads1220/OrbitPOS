@@ -57,8 +57,9 @@ export default function SupportPage() {
 
       if (error) throw error;
 
-      // The form will now submit naturally via its 'action' attribute
-      // to ensure FormSubmit can show the activation page if needed.
+      // Manually trigger the form submission to FormSubmit
+      // (e.target.submit() bypasses the onSubmit handler, preventing a loop)
+      (e.target as HTMLFormElement).submit();
     } catch (error: any) {
       console.error('Support form error:', error);
       toast.error(`Failed to save ticket: ${error.message || 'Unknown error'}`);
