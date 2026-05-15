@@ -21,6 +21,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { submitToFormSubmit } from '@/app/actions/formsubmit';
 
 import Image from 'next/image';
 
@@ -57,21 +58,19 @@ export default function SupportPage() {
 
       if (error) throw error;
 
-      // Send email via FormSubmit AJAX
-      await fetch("https://formsubmit.co/ajax/orbitpossales@gmail.com", {
-        method: "POST",
-        headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-            _subject: "New OrbitPOS Support Ticket",
-            "Store Name": formData.storeName,
-            "Email": formData.email,
-            "Issue Type": formData.issueType,
-            "Description": formData.description
-        })
+      // Send email via FormSubmit Server Action (bypasses CORS)
+      const formResult = await submitToFormSubmit("orbitpossales@gmail.com", {
+        _subject: "New OrbitPOS Support Ticket",
+        "Store Name": formData.storeName,
+        "Email": formData.email,
+        "Issue Type": formData.issueType,
+        "Description": formData.description
       });
+
+      if (!formResult.success) {
+        console.warn('FormSubmit failed:', formResult.error);
+        // We still show success because it was saved to the DB
+      }
 
       toast.success('Support ticket submitted successfully! We will get back to you within 2 hours.');
       setFormData({

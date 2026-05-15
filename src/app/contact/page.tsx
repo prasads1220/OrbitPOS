@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { submitToFormSubmit } from '@/app/actions/formsubmit';
 export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -37,22 +38,20 @@ export default function ContactPage() {
 
       if (error) throw error;
 
-      // Send email via FormSubmit AJAX
-      await fetch("https://formsubmit.co/ajax/orbitpossales@gmail.com", {
-        method: "POST",
-        headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-            _subject: "New OrbitPOS Contact Lead",
-            "First Name": formData.firstName,
-            "Last Name": formData.lastName,
-            "Email": formData.email,
-            "Company": formData.company,
-            "Message": formData.message
-        })
+      // Send email via FormSubmit Server Action (bypasses CORS)
+      const formResult = await submitToFormSubmit("orbitpossales@gmail.com", {
+        _subject: "New OrbitPOS Contact Lead",
+        "First Name": formData.firstName,
+        "Last Name": formData.lastName,
+        "Email": formData.email,
+        "Company": formData.company,
+        "Message": formData.message
       });
+
+      if (!formResult.success) {
+        console.warn('FormSubmit failed:', formResult.error);
+        // We still show success because it was saved to the DB
+      }
 
       toast.success('Message sent successfully! We will get back to you soon.');
       setFormData({
