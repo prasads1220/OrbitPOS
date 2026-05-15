@@ -62,9 +62,9 @@ export default function ContactPage() {
         company: '',
         message: ''
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Contact form error:', error);
-      toast.error('Failed to send message. Please try again later.');
+      toast.error(`Failed to send message: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }

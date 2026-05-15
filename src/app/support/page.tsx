@@ -80,9 +80,9 @@ export default function SupportPage() {
         issueType: 'Technical Issue',
         description: ''
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Support form error:', error);
-      toast.error('Failed to submit ticket. Please try again later.');
+      toast.error(`Failed to submit ticket: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
