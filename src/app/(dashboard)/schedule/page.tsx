@@ -63,7 +63,7 @@ export default function SchedulePage() {
   const [editingShift, setEditingShift] = useState<any>(null);
   
   // Form State
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [shiftDate, setShiftDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
@@ -185,7 +185,7 @@ export default function SchedulePage() {
 
   const resetForm = () => {
     setEditingShift(null);
-    setSelectedEmployeeId('');
+    setSelectedEmployeeId(null);
     setShiftDate(format(new Date(), 'yyyy-MM-dd'));
     setStartTime('09:00');
     setEndTime('17:00');
@@ -289,7 +289,7 @@ export default function SchedulePage() {
                 <div className="grid gap-6 py-6">
                   <div className="space-y-2">
                     <Label className="font-bold text-gray-700">Select Employee</Label>
-                    <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+                    <Select value={selectedEmployeeId} onValueChange={(val) => setSelectedEmployeeId(val)}>
                       <SelectTrigger className="rounded-xl h-12 border-gray-100 font-medium">
                         <SelectValue placeholder="Choose an employee" />
                       </SelectTrigger>
