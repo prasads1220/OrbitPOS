@@ -191,6 +191,16 @@ export default function DashboardPage() {
       }
       setChartData(chartPoints);
 
+      // 4. Recent orders (Filtered by range for context)
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('id, total_amount, refunded_amount, payment_method, payment_status, created_at')
+        .eq('store_id', storeId)
+        .gte('created_at', startDate)
+        .lt('created_at', endDate)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
       setRecentOrders(orders || []);
 
       // 5. Vendor Performance Data
@@ -256,6 +266,7 @@ export default function DashboardPage() {
             ))}
           </div>
 
+          <div className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-100 rounded-xl shadow-sm hover:border-[#0071e3] transition-colors">
             <CalendarDays className="h-4 w-4 text-gray-400" />
             <input 
               type="date" 
@@ -372,12 +383,45 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Orders */}
+        <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col">
+          <h3 className="text-xl font-bold text-black mb-6" style={{fontFamily: 'var(--font-outfit)'}}>Recent Orders</h3>
+          
+          {loading ? (
+            <div className="flex-1 flex items-center justify-center text-gray-300">
+              <RefreshCw className="h-6 w-6 animate-spin" />
+            </div>
+          ) : recentOrders.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center text-gray-300 py-8">
+              <ShoppingBag className="h-12 w-12 mb-3 opacity-30" />
+              <p className="font-medium text-gray-400">No orders yet</p>
+              <p className="text-[13px] mt-1">Head to POS to complete your first sale.</p>
+            </div>
+          ) : (
+            <div className="space-y-5 flex-1">
+              {recentOrders.map((order) => (
+                <div key={order.id} className="flex items-center justify-between group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                      <ArrowUpRight className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-[13px] font-bold text-black group-hover:text-[#0071e3] transition-colors">
+                        #{order.id.slice(0, 8)}
+                      </p>
+                      <p className="text-[11px] font-medium text-gray-400 capitalize">
+                        {order.payment_method} • {format(new Date(order.created_at), 'HH:mm')}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`text-[14px] font-bold ${order.payment_status === 'voided' ? 'text-gray-400 line-through' : 'text-emerald-500'}`}>
+                    {order.payment_status === 'voided' ? '' : '+'}${ (order.total_amount - (order.refunded_amount || 0)).toFixed(2)}
+                  </span>
+                </div>
+              ))}
             </div>
           )}
         </div>
-
-        {/* Vendor Performance Chart */}
-        <div className="lg:col-span-3 bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+        <div className="lg:col-span-3 bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm mt-8">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h3 className="text-xl font-bold text-black" style={{fontFamily: 'var(--font-outfit)'}}>Top Vendors by Sales</h3>
