@@ -140,11 +140,9 @@ export default function VendorInvoicesPage() {
           <p className="text-[#86868b] font-medium mt-1">Manage and store your supplier invoices and documents.</p>
         </div>
         <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-black hover:bg-gray-800 text-white font-bold rounded-2xl h-11 px-6 shadow-lg transition-all active:scale-95">
-              <Upload className="mr-2 h-5 w-5" />
-              Upload Invoice
-            </Button>
+          <DialogTrigger render={<Button className="bg-black hover:bg-gray-800 text-white font-bold rounded-2xl h-11 px-6 shadow-lg transition-all active:scale-95" />}>
+            <Upload className="mr-2 h-5 w-5" />
+            Upload Invoice
           </DialogTrigger>
           <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
             <div className="p-10 bg-[#fbfbfd] border-b border-gray-50">
