@@ -123,25 +123,48 @@ export function TransferConfirmationPopup() {
             .single();
 
           if (sourceProduct) {
-            const { error } = await supabase
+            const productData = {
+              name: sourceProduct.name,
+              sku: sourceProduct.sku,
+              barcode: sourceProduct.barcode,
+              description: sourceProduct.description,
+              price: sourceProduct.price,
+              cost_price: sourceProduct.cost_price,
+              stock_quantity: item.quantity,
+              category_id: null, // Avoid foreign key constraints in multi-tenant environment!
+              image_url: sourceProduct.image_url,
+              vendor_name: sourceProduct.vendor_name,
+              brand_name: sourceProduct.brand_name,
+              color: sourceProduct.color,
+              product_type: sourceProduct.product_type,
+              store_id: profile.store_id
+            };
+
+            const { error: insertError } = await supabase
               .from('products')
-              .insert({
-                name: sourceProduct.name,
-                sku: sourceProduct.sku,
-                barcode: sourceProduct.barcode,
-                description: sourceProduct.description,
-                price: sourceProduct.price,
-                cost_price: sourceProduct.cost_price,
-                stock_quantity: item.quantity,
-                category_id: null, // Avoid foreign key constraints in multi-tenant environment!
-                image_url: sourceProduct.image_url,
-                vendor_name: sourceProduct.vendor_name,
-                brand_name: sourceProduct.brand_name,
-                color: sourceProduct.color,
-                product_type: sourceProduct.product_type,
-                store_id: profile.store_id
-              });
-            if (error) throw error;
+              .insert(productData);
+
+            if (insertError) {
+              // Double-safety net: If it violates products_sku_key constraint, append store ID suffix to SKU!
+              if (insertError.message.includes('products_sku_key') || insertError.code === '23505') {
+                const retrySku = `${sourceProduct.sku}-${profile.store_id.slice(0, 4)}`;
+                const retryBarcode = sourceProduct.barcode ? `${sourceProduct.barcode}-${profile.store_id.slice(0, 4)}` : null;
+
+                const { error: retryError } = await supabase
+                  .from('products')
+                  .insert({
+                    ...productData,
+                    sku: retrySku,
+                    barcode: retryBarcode
+                  });
+
+                if (retryError) throw retryError;
+                
+                toast.warning(`SKU Conflict Resolved: Product was added with a store-specific SKU: "${retrySku}". Please run the recommended SQL update in your Supabase Editor for a clean permanent fix.`);
+              } else {
+                throw insertError;
+              }
+            }
           }
         }
       }
