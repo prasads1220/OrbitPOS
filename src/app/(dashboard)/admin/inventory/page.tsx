@@ -12,8 +12,10 @@ import {
   Minus,
   RefreshCw,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Send
 } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -107,10 +109,20 @@ export default function InventoryPage() {
           <h1 className="text-3xl font-bold tracking-tight text-black">Inventory</h1>
           <p className="text-[#86868b] font-medium mt-1">Monitor stock levels and adjust quantities.</p>
         </div>
-        <Button onClick={() => fetchInventory()} variant="outline" className="rounded-2xl h-11 font-bold">
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-3">
+          {isAdmin && (
+            <Link href="/admin/inventory/transfer">
+              <Button className="bg-black hover:bg-gray-800 text-white font-bold rounded-2xl h-11 px-6 shadow-lg transition-all active:scale-95">
+                <Send className="mr-2 h-4 w-4" />
+                Transfer Stock
+              </Button>
+            </Link>
+          )}
+          <Button onClick={() => fetchInventory()} variant="outline" className="rounded-2xl h-11 font-bold">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Low Stock Alert */}

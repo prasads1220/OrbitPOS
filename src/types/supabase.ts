@@ -346,9 +346,6 @@ export interface Database {
           store_id: string | null
           invoice_date: string
           created_at: string
-          invoice_number: string | null
-          amount: number | null
-          notes: string | null
         }
         Insert: {
           id?: string
@@ -357,9 +354,6 @@ export interface Database {
           store_id?: string | null
           invoice_date?: string
           created_at?: string
-          invoice_number?: string | null
-          amount?: number | null
-          notes?: string | null
         }
         Update: {
           id?: string
@@ -368,9 +362,6 @@ export interface Database {
           store_id?: string | null
           invoice_date?: string
           created_at?: string
-          invoice_number?: string | null
-          amount?: number | null
-          notes?: string | null
         }
       }
       stock_transfers: {
@@ -383,8 +374,6 @@ export interface Database {
           created_at: string
           confirmed_at: string | null
           confirmed_by: string | null
-          total_amount: number | null
-          total_quantity: number | null
         }
         Insert: {
           id?: string
@@ -395,8 +384,6 @@ export interface Database {
           created_at?: string
           confirmed_at?: string | null
           confirmed_by?: string | null
-          total_amount?: number | null
-          total_quantity?: number | null
         }
         Update: {
           id?: string
@@ -407,8 +394,6 @@ export interface Database {
           created_at?: string
           confirmed_at?: string | null
           confirmed_by?: string | null
-          total_amount?: number | null
-          total_quantity?: number | null
         }
       }
     }

@@ -15,10 +15,7 @@ import {
   RefreshCw,
   Store,
   ChevronDown,
-  Download,
-  Boxes,
-  TrendingDown,
-  Info
+  Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -29,8 +26,8 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  PieChart,
-  Pie,
+  BarChart,
+  Bar,
   Cell
 } from 'recharts';
 import { 
@@ -46,8 +43,6 @@ import {
   endOfYear 
 } from 'date-fns';
 
-const CHART_COLORS = ['#0071e3', '#34c759', '#ff9500', '#af52de', '#ff3b30', '#5856d6'];
-
 export default function DashboardPage() {
   const { profile } = useAuthStore();
   const [loading, setLoading] = useState(true);
@@ -61,11 +56,7 @@ export default function DashboardPage() {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [timeRange, setTimeRange] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
-  
-  // Advanced Vendor & Product Analytics states
   const [vendorData, setVendorData] = useState<any[]>([]);
-  const [selectedVendorIndex, setSelectedVendorIndex] = useState<number>(0);
-
   const [stores, setStores] = useState<any[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(profile?.store_id || null);
 
@@ -113,7 +104,7 @@ export default function DashboardPage() {
       const { data: rangeData } = await supabase
         .from('orders')
         .select('total_amount, refunded_amount')
-        .eq('store_id', storeId)
+        .eq('store_id', profile.store_id)
         .gte('created_at', startDate)
         .lt('created_at', endDate)
         .neq('payment_status', 'voided');
@@ -126,7 +117,7 @@ export default function DashboardPage() {
       const { count: totalProfiles } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
-        .eq('store_id', storeId);
+        .eq('store_id', profile.store_id);
 
       setStats({
         totalRevenue,
@@ -138,6 +129,7 @@ export default function DashboardPage() {
       // 3. Dynamic Chart Data
       const chartPoints = [];
       if (range === 'daily' || range === 'weekly') {
+        // Show last 7 days
         for (let i = 6; i >= 0; i--) {
           const day = subDays(targetDate, i);
           const dStart = startOfDay(day).toISOString();
@@ -146,7 +138,7 @@ export default function DashboardPage() {
           const { data: dOrders } = await supabase
             .from('orders')
             .select('total_amount, refunded_amount')
-            .eq('store_id', storeId)
+            .eq('store_id', profile.store_id)
             .gte('created_at', dStart)
             .lt('created_at', dEnd)
             .neq('payment_status', 'voided');
@@ -158,6 +150,7 @@ export default function DashboardPage() {
           });
         }
       } else if (range === 'monthly') {
+        // Show 4 weeks of the month
         for (let i = 0; i < 4; i++) {
           const wStart = subDays(endOfMonth(targetDate), (3 - i) * 7 + 6);
           const wEnd = subDays(endOfMonth(targetDate), (3 - i) * 7);
@@ -165,7 +158,7 @@ export default function DashboardPage() {
           const { data: wOrders } = await supabase
             .from('orders')
             .select('total_amount, refunded_amount')
-            .eq('store_id', storeId)
+            .eq('store_id', profile.store_id)
             .gte('created_at', startOfDay(wStart).toISOString())
             .lt('created_at', endOfDay(wEnd).toISOString())
             .neq('payment_status', 'voided');
@@ -177,6 +170,7 @@ export default function DashboardPage() {
           });
         }
       } else {
+        // Yearly: Show 12 months
         for (let i = 0; i < 12; i++) {
           const mDate = new Date(targetDate.getFullYear(), i, 1);
           const mStart = startOfMonth(mDate).toISOString();
@@ -185,7 +179,7 @@ export default function DashboardPage() {
           const { data: mOrders } = await supabase
             .from('orders')
             .select('total_amount, refunded_amount')
-            .eq('store_id', storeId)
+            .eq('store_id', profile.store_id)
             .gte('created_at', mStart)
             .lt('created_at', mEnd)
             .neq('payment_status', 'voided');
@@ -199,7 +193,7 @@ export default function DashboardPage() {
       }
       setChartData(chartPoints);
 
-      // 4. Recent orders
+      // 4. Recent orders (Filtered by range for context)
       const { data: orders } = await supabase
         .from('orders')
         .select('id, total_amount, refunded_amount, payment_method, payment_status, created_at')
@@ -211,7 +205,7 @@ export default function DashboardPage() {
 
       setRecentOrders(orders || []);
 
-      // 5. Vendor Performance Data & Dynamic Sub-product association
+      // 5. Vendor Performance Data
       const { data: vItems } = await supabase
         .from('order_items')
         .select(`
@@ -219,48 +213,24 @@ export default function DashboardPage() {
           product_id,
           products!inner (
             vendor_name,
-            name,
-            store_id
+            name
           )
         `)
-        .eq('products.store_id', storeId)
         .gte('created_at', startDate)
         .lt('created_at', endDate);
 
       const vendorMap: Record<string, number> = {};
-      const vendorProductsMap: Record<string, Record<string, { quantity: number; name: string }>> = {};
-
       vItems?.forEach((item: any) => {
-        const vName = item.products?.vendor_name || 'Generic Vendor';
-        const pName = item.products?.name || 'Unknown Item';
-        const pId = item.product_id;
-
+        const vName = item.products?.vendor_name || 'Generic';
         vendorMap[vName] = (vendorMap[vName] || 0) + item.quantity;
-
-        if (!vendorProductsMap[vName]) {
-          vendorProductsMap[vName] = {};
-        }
-        if (!vendorProductsMap[vName][pName]) {
-          vendorProductsMap[vName][pName] = { quantity: 0, name: pName };
-        }
-        vendorProductsMap[vName][pName].quantity += item.quantity;
       });
 
       const vData = Object.entries(vendorMap)
-        .map(([name, value]) => {
-          const associatedProducts = Object.values(vendorProductsMap[name] || {})
-            .sort((a, b) => b.quantity - a.quantity);
-
-          return {
-            name,
-            value,
-            products: associatedProducts
-          };
-        })
-        .sort((a, b) => b.value - a.value);
-
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 5);
+      
       setVendorData(vData);
-      setSelectedVendorIndex(0); // Reset index to highest selling vendor
 
     } catch (err) {
       console.error('Dashboard data error:', err);
@@ -270,7 +240,6 @@ export default function DashboardPage() {
   };
 
   const today = new Date();
-  const currentVendor = vendorData[selectedVendorIndex] || null;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -454,13 +423,11 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
-
-        {/* Brand New Interactive Drill-down Vendor and Associated Products Dashboard */}
         <div className="lg:col-span-3 bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm mt-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-xl font-bold text-black" style={{fontFamily: 'var(--font-outfit)'}}>Vendor Performance Hub</h3>
-              <p className="text-[13px] text-gray-400 font-medium">Click vendor share slices or tabs to reveal specific products sold.</p>
+              <h3 className="text-xl font-bold text-black" style={{fontFamily: 'var(--font-outfit)'}}>Top Vendors by Sales</h3>
+              <p className="text-[13px] text-gray-400 font-medium">Comparison of product units sold per vendor</p>
             </div>
             <div className="flex items-center gap-4">
               <Button 
@@ -476,134 +443,47 @@ export default function DashboardPage() {
                   a.download = `vendor_report_${timeRange}.csv`;
                   a.click();
                 }}
-                disabled={vendorData.length === 0}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
             </div>
           </div>
-
-          {loading ? (
-            <div className="h-[350px] flex items-center justify-center">
-              <RefreshCw className="h-8 w-8 animate-spin text-[#0071e3]" />
-            </div>
-          ) : vendorData.length === 0 ? (
-            <div className="h-[350px] flex flex-col items-center justify-center text-gray-300">
-              <Package className="h-12 w-12 mb-3 opacity-30" />
-              <p className="font-medium text-gray-400">No vendor performance data available for this period</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-center">
-              
-              {/* Radial Share Chart (Left Col) */}
-              <div className="lg:col-span-2 flex flex-col items-center justify-center">
-                <div className="h-[250px] w-full relative flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={vendorData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={65}
-                        outerRadius={95}
-                        paddingAngle={4}
-                        dataKey="value"
-                        onClick={(_, idx) => setSelectedVendorIndex(idx)}
-                        className="cursor-pointer"
-                      >
-                        {vendorData.map((_, idx) => (
-                          <Cell 
-                            key={`cell-${idx}`} 
-                            fill={CHART_COLORS[idx % CHART_COLORS.length]} 
-                            stroke={selectedVendorIndex === idx ? '#000' : 'transparent'}
-                            strokeWidth={selectedVendorIndex === idx ? 2 : 0}
-                            style={{ outline: 'none', filter: selectedVendorIndex === idx ? 'drop-shadow(0 4px 12px rgba(0,0,0,0.15))' : 'none' }}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value: any) => [`${value} Units`, 'Quantity']} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  
-                  {/* Absolute Centered Stats Badge */}
-                  <div className="absolute text-center">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Selected share</p>
-                    <p className="text-2xl font-black text-black mt-0.5">
-                      {currentVendor ? `${((currentVendor.value / vendorData.reduce((sum, v) => sum + v.value, 0)) * 100).toFixed(0)}%` : '0%'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Legends */}
-                <div className="flex flex-wrap gap-3 justify-center mt-2 max-w-[90%]">
-                  {vendorData.map((v, idx) => (
-                    <button
-                      key={v.name}
-                      onClick={() => setSelectedVendorIndex(idx)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border ${
-                        selectedVendorIndex === idx 
-                          ? 'bg-black text-white border-black shadow-md' 
-                          : 'bg-gray-50 text-gray-500 border-gray-100 hover:bg-gray-100'
-                      }`}
-                    >
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
-                      <span className="truncate max-w-[100px]">{v.name}</span>
-                    </button>
-                  ))}
-                </div>
+          <div className="h-[350px] w-full">
+            {loading ? (
+              <div className="h-full flex items-center justify-center">
+                <RefreshCw className="h-8 w-8 animate-spin text-gray-300" />
               </div>
-
-              {/* Dynamic Associated Products Breakdown (Right Col) */}
-              <div className="lg:col-span-3 space-y-5 bg-gray-50/50 p-6 rounded-[2rem] border border-gray-100">
-                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                  <div>
-                    <span className="bg-blue-100 text-[#0071e3] text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">
-                      Supplier Products Breakout
-                    </span>
-                    <h4 className="text-lg font-black text-black mt-2 leading-none">
-                      {currentVendor?.name}
-                    </h4>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Sales</p>
-                    <p className="text-xl font-black text-[#0071e3]">{currentVendor?.value || 0} Units</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
-                  {!currentVendor?.products || currentVendor.products.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-center text-gray-300">
-                      <Boxes className="h-10 w-10 mb-2 opacity-25" />
-                      <p className="text-xs font-bold">No products cataloged under this vendor</p>
-                    </div>
-                  ) : (
-                    currentVendor.products.map((p: any, idx: number) => {
-                      const percentage = currentVendor.value > 0 ? (p.quantity / currentVendor.value) * 100 : 0;
-                      return (
-                        <div key={idx} className="space-y-1.5">
-                          <div className="flex justify-between items-center text-xs font-bold text-black">
-                            <span className="truncate max-w-[220px]">{p.name}</span>
-                            <span className="text-gray-400 font-black">{p.quantity} Units ({percentage.toFixed(0)}%)</span>
-                          </div>
-                          <div className="w-full bg-gray-200/50 h-2.5 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full rounded-full transition-all duration-1000" 
-                              style={{ 
-                                width: `${percentage}%`, 
-                                backgroundColor: CHART_COLORS[selectedVendorIndex % CHART_COLORS.length] 
-                              }} 
-                            />
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
+            ) : vendorData.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-gray-300">
+                <Package className="h-12 w-12 mb-3 opacity-30" />
+                <p className="font-medium text-gray-400">No data available for this period</p>
               </div>
-
-            </div>
-          )}
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={vendorData} layout="vertical" margin={{ left: 20, right: 30, top: 0, bottom: 0 }}>
+                  <XAxis type="number" hide />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{fill: '#000', fontSize: 13, fontWeight: 700}} 
+                    width={100}
+                  />
+                  <Tooltip 
+                    cursor={{fill: '#fbfbfd'}} 
+                    contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.08)'}}
+                  />
+                  <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={32}>
+                    {vendorData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={['#0071e3', '#34c759', '#ff9500', '#af52de', '#ff3b30'][index % 5]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -9,9 +9,7 @@ import {
   XCircle, 
   Loader2, 
   ArrowRight,
-  Info,
-  DollarSign,
-  Boxes
+  Info
 } from 'lucide-react';
 import {
   Dialog,
@@ -32,9 +30,9 @@ export function TransferConfirmationPopup() {
     if (profile?.store_id) {
       checkPendingTransfers();
       
-      // Subscribe to real-time additions of stock transfers
+      // Subscribe to new transfers
       const channel = supabase
-        .channel('new_transfers_realtime')
+        .channel('new_transfers')
         .on('postgres_changes', { 
           event: 'INSERT', 
           schema: 'public', 
@@ -56,19 +54,34 @@ export function TransferConfirmationPopup() {
     try {
       const { data, error } = await supabase
         .from('stock_transfers')
-        .select('*, stores!stock_transfers_source_store_id_fkey(name)')
+        .select('*')
         .eq('target_store_id', profile.store_id)
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
+      if (error) {
+        console.error('Error fetching transfers:', error);
+        return;
+      }
+
       if (data) {
-        setPendingTransfer(data);
+        // Fetch source store name dynamically to avoid POSTGREST relationship constraint bugs
+        const { data: storeData } = await supabase
+          .from('stores')
+          .select('name')
+          .eq('id', data.source_store_id)
+          .single();
+
+        setPendingTransfer({
+          ...data,
+          source_store_name: storeData ? storeData.name : 'Admin Hub/Other Store'
+        });
         setOpen(true);
       }
     } catch (err) {
-      console.error('Error checking pending transfers:', err);
+      console.error('Exception in checkPendingTransfers:', err);
     }
   };
 
@@ -80,47 +93,31 @@ export function TransferConfirmationPopup() {
       const items = pendingTransfer.items as any[];
 
       for (const item of items) {
-        // 1. Fetch source product details to ensure we decrease its quantity
-        // and copy correct metadata if it's a new item in the destination store
-        const { data: sourceProduct, error: sourceFetchError } = await supabase
-          .from('products')
-          .select('*')
-          .eq('store_id', pendingTransfer.source_store_id)
-          .eq('sku', item.sku)
-          .maybeSingle();
-
-        if (sourceProduct) {
-          // A. Decrement stock from the source (admin) inventory
-          const newSourceQty = Math.max(0, (sourceProduct.stock_quantity || 0) - item.quantity);
-          const { error: sourceUpdateError } = await supabase
-            .from('products')
-            .update({ stock_quantity: newSourceQty })
-            .eq('id', sourceProduct.id);
-          
-          if (sourceUpdateError) throw sourceUpdateError;
-        }
-
-        // 2. Check if product already exists by SKU in target (employee's) store
-        const { data: existingTargetProduct } = await supabase
+        // 1. Try to find existing product by SKU in target store
+        const { data: existingProduct } = await supabase
           .from('products')
           .select('*')
           .eq('store_id', profile.store_id)
           .eq('sku', item.sku)
           .maybeSingle();
 
-        if (existingTargetProduct) {
-          // B. Increment stock in the target store inventory
-          const newTargetQty = (existingTargetProduct.stock_quantity || 0) + item.quantity;
-          const { error: targetUpdateError } = await supabase
+        if (existingProduct) {
+          // Update existing stock
+          const { error } = await supabase
             .from('products')
-            .update({ stock_quantity: newTargetQty })
-            .eq('id', existingTargetProduct.id);
-          
-          if (targetUpdateError) throw targetUpdateError;
+            .update({ stock_quantity: (existingProduct.stock_quantity || 0) + item.quantity })
+            .eq('id', existingProduct.id);
+          if (error) throw error;
         } else {
-          // C. If product doesn't exist in destination, copy details from source and insert new
+          // 2. If not found, copy from source store
+          const { data: sourceProduct } = await supabase
+            .from('products')
+            .select('*')
+            .eq('id', item.product_id)
+            .single();
+
           if (sourceProduct) {
-            const { error: targetInsertError } = await supabase
+            const { error } = await supabase
               .from('products')
               .insert({
                 name: sourceProduct.name,
@@ -129,8 +126,8 @@ export function TransferConfirmationPopup() {
                 description: sourceProduct.description,
                 price: sourceProduct.price,
                 cost_price: sourceProduct.cost_price,
-                stock_quantity: item.quantity, // Set to dispatched transfer quantity
-                category_id: sourceProduct.category_id,
+                stock_quantity: item.quantity,
+                category_id: null, // Avoid foreign key constraints in multi-tenant environment!
                 image_url: sourceProduct.image_url,
                 vendor_name: sourceProduct.vendor_name,
                 brand_name: sourceProduct.brand_name,
@@ -138,13 +135,12 @@ export function TransferConfirmationPopup() {
                 product_type: sourceProduct.product_type,
                 store_id: profile.store_id
               });
-            
-            if (targetInsertError) throw targetInsertError;
+            if (error) throw error;
           }
         }
       }
 
-      // 3. Mark transfer record as confirmed
+      // 3. Mark transfer as confirmed
       const { error: updateError } = await supabase
         .from('stock_transfers')
         .update({ 
@@ -156,12 +152,16 @@ export function TransferConfirmationPopup() {
 
       if (updateError) throw updateError;
 
-      toast.success('Stock transfer received! Local and admin inventories updated successfully.');
+      toast.success('Inventory updated successfully!');
       setOpen(false);
       setPendingTransfer(null);
+      
+      // Auto refresh current page inventory if we are on the inventory page
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
     } catch (error: any) {
-      console.error('Stock confirmation failed:', error);
-      toast.error(error.message || 'Failed to process inventory update');
+      toast.error(error.message || 'Failed to confirm transfer');
     } finally {
       setLoading(false);
     }
@@ -169,48 +169,59 @@ export function TransferConfirmationPopup() {
 
   const handleDecline = async () => {
     if (!pendingTransfer) return;
-    if (!confirm('Decline this dispatch? Stock will remain unchanged at source and target stores.')) return;
+    if (!confirm('Are you sure you want to decline this transfer? Stock will be automatically returned to the source store.')) return;
 
+    setLoading(true);
     try {
+      const items = pendingTransfer.items as any[];
+
+      // Revert stock quantities back to source store's inventory
+      for (const item of items) {
+        const { data: sourceProduct } = await supabase
+          .from('products')
+          .select('stock_quantity')
+          .eq('id', item.product_id)
+          .maybeSingle();
+
+        if (sourceProduct) {
+          const { error: revertError } = await supabase
+            .from('products')
+            .update({ stock_quantity: (sourceProduct.stock_quantity || 0) + item.quantity })
+            .eq('id', item.product_id);
+          if (revertError) throw revertError;
+        }
+      }
+
       const { error } = await supabase
         .from('stock_transfers')
         .update({ status: 'cancelled' })
         .eq('id', pendingTransfer.id);
 
       if (error) throw error;
-      
-      toast.success('Transfer dispatch cancelled safely.');
+
+      toast.success('Transfer declined and stock returned to source store.');
       setOpen(false);
       setPendingTransfer(null);
-    } catch (err) {
-      toast.error('Failed to cancel stock transfer');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to cancel transfer');
+    } finally {
+      setLoading(false);
     }
   };
 
   if (!pendingTransfer) return null;
 
-  const totalTransferValuation = pendingTransfer.total_amount || 
-    (pendingTransfer.items as any[]).reduce((sum, item) => sum + ((item.price || 0) * item.quantity), 0);
-
-  const totalTransferQuantity = pendingTransfer.total_quantity || 
-    (pendingTransfer.items as any[]).reduce((sum, item) => sum + item.quantity, 0);
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl bg-white">
-        
-        {/* Apple style banner */}
+      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
         <div className="p-8 bg-[#0071e3] text-white">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 mb-4">
             <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
               <Package className="h-6 w-6 text-white" />
             </div>
             <div>
-              <span className="bg-white/20 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">
-                New Order Received
-              </span>
-              <DialogTitle className="text-xl font-black tracking-tight mt-1.5">Incoming Dispatch Order</DialogTitle>
-              <p className="text-white/80 text-[12px] font-medium">Items sent from admin branch: {pendingTransfer.stores?.name}</p>
+              <DialogTitle className="text-xl font-black tracking-tight">Incoming Stock Order</DialogTitle>
+              <p className="text-white/70 text-[13px] font-medium">New items arriving from {pendingTransfer.source_store_name}</p>
             </div>
           </div>
         </div>
@@ -218,45 +229,21 @@ export function TransferConfirmationPopup() {
         <div className="p-8 space-y-6">
           <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex gap-3">
             <Info className="h-5 w-5 text-[#0071e3] shrink-0" />
-            <div className="space-y-1">
-              <p className="text-[13px] font-bold text-blue-900 leading-none">Receipt Verification Required</p>
-              <p className="text-[11px] font-medium text-blue-800 leading-relaxed mt-1">
-                Please verify the products and quantities before confirming receipt. Confirming will automatically deduct admin stocks and add them directly into your branch inventory.
-              </p>
-            </div>
-          </div>
-
-          {/* Pricing & quantity summary header */}
-          <div className="grid grid-cols-2 gap-4 border-b border-gray-100 pb-4">
-            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Dispatched items</span>
-              <span className="text-lg font-black text-black">{totalTransferQuantity} pcs</span>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Invoice valuation</span>
-              <span className="text-lg font-black text-[#0071e3]">${Number(totalTransferValuation).toFixed(2)}</span>
-            </div>
+            <p className="text-[13px] font-medium text-blue-800 leading-relaxed">
+              An admin has initiated a stock transfer to your store. Please verify the items below. Confirming will add these quantities to your store's inventory.
+            </p>
           </div>
 
           <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Dispatch List Details</p>
             {(pendingTransfer.items as any[]).map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100/50">
                 <div className="flex-1 min-w-0 pr-4">
                   <p className="text-[13px] font-bold text-black truncate">{item.name}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[11px] font-mono text-gray-400">{item.sku}</span>
-                    {item.price > 0 && (
-                      <>
-                        <span className="text-gray-300">•</span>
-                        <span className="text-[11px] font-bold text-gray-400">${Number(item.price).toFixed(2)} each</span>
-                      </>
-                    )}
-                  </div>
+                  <p className="text-[11px] text-gray-400 font-medium">SKU: {item.sku}</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-lg font-black text-[#0071e3]">{item.quantity}</span>
-                  <span className="text-[11px] text-gray-400 uppercase font-black">pcs</span>
+                <div className="flex items-center gap-2">
+                  <ArrowRight className="h-3 w-3 text-gray-300" />
+                  <span className="text-lg font-black text-[#0071e3]">{item.quantity} Units</span>
                 </div>
               </div>
             ))}

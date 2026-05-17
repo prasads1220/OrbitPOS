@@ -15,10 +15,7 @@ CREATE TABLE IF NOT EXISTS vendor_invoices (
     invoice_url TEXT NOT NULL,
     store_id UUID REFERENCES stores(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    invoice_date DATE DEFAULT CURRENT_DATE,
-    invoice_number TEXT,
-    amount NUMERIC DEFAULT 0,
-    notes TEXT
+    invoice_date DATE DEFAULT CURRENT_DATE
 );
 
 -- 3. Create stock_transfers table
@@ -26,13 +23,11 @@ CREATE TABLE IF NOT EXISTS stock_transfers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     source_store_id UUID REFERENCES stores(id) NOT NULL,
     target_store_id UUID REFERENCES stores(id) NOT NULL,
-    items JSONB NOT NULL, -- Array of {product_id, sku, name, quantity, price}
+    items JSONB NOT NULL, -- Array of {product_id, sku, name, quantity}
     status TEXT CHECK (status IN ('pending', 'confirmed', 'cancelled')) DEFAULT 'pending',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     confirmed_at TIMESTAMP WITH TIME ZONE,
-    confirmed_by UUID REFERENCES profiles(id),
-    total_amount NUMERIC DEFAULT 0,
-    total_quantity INTEGER DEFAULT 0
+    confirmed_by UUID REFERENCES profiles(id)
 );
 
 -- 4. Enable RLS

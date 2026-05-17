@@ -18,7 +18,9 @@ import {
   ClipboardList,
   ShieldCheck,
   X,
-  Calendar
+  Calendar,
+  Send,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -30,6 +32,8 @@ const navItems = [
   { name: 'Orders History', href: '/orders', icon: ClipboardList, roles: ['admin', 'cashier', 'employee'] },
   { name: 'Products', href: '/admin/products', icon: Package, roles: ['admin', 'cashier', 'employee'] },
   { name: 'Inventory', href: '/admin/inventory', icon: Package, roles: ['admin', 'cashier', 'employee'] },
+  { name: 'Stock Transfer', href: '/admin/inventory/transfer', icon: Send, roles: ['admin'] },
+  { name: 'Vendor Invoices', href: '/admin/vendors', icon: FileText, roles: ['admin'] },
   { name: 'Employees', href: '/admin/employees', icon: Users, roles: ['admin', 'cashier', 'employee'] },
   { name: 'Reports', href: '/admin/reports', icon: BarChart3, roles: ['admin', 'cashier', 'employee'] },
   { name: 'Attendance', href: '/attendance', icon: Clock, roles: ['admin', 'cashier', 'employee'] },
