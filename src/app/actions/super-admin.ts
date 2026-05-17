@@ -31,32 +31,54 @@ export async function createStore(name: string, branding_logo?: string) {
 
 export async function deleteStore(storeId: string) {
   try {
-    // 1. Fetch all users belonging to this store first
-    const { data: users } = await getSupabaseAdmin()
+    const adminClient = getSupabaseAdmin();
+
+    // 1. Delete order items first (referencing orders and products)
+    await adminClient.from('order_items').delete().eq('store_id', storeId);
+
+    // 2. Delete orders (referencing cashier_id in profiles)
+    await adminClient.from('orders').delete().eq('store_id', storeId);
+
+    // 3. Delete inventory logs
+    await adminClient.from('inventory_logs').delete().eq('store_id', storeId);
+
+    // 4. Delete vendor invoices
+    await adminClient.from('vendor_invoices').delete().eq('store_id', storeId);
+
+    // 5. Delete stock transfers (where source_store_id or target_store_id matches)
+    await adminClient.from('stock_transfers').delete().eq('source_store_id', storeId);
+    await adminClient.from('stock_transfers').delete().eq('target_store_id', storeId);
+
+    // 6. Delete products
+    await adminClient.from('products').delete().eq('store_id', storeId);
+
+    // 7. Delete shifts
+    await adminClient.from('shifts').delete().eq('store_id', storeId);
+
+    // 8. Delete attendance
+    await adminClient.from('attendance').delete().eq('store_id', storeId);
+
+    // 9. Delete payroll
+    await adminClient.from('payroll').delete().eq('store_id', storeId);
+
+    // 10. Fetch all users belonging to this store first
+    const { data: users } = await adminClient
       .from('profiles')
       .select('id')
       .eq('store_id', storeId);
 
-    // 2. Delete each user from Supabase Auth
+    // 11. Delete each user from Supabase Auth
     if (users && users.length > 0) {
       for (const user of users) {
-        await getSupabaseAdmin().auth.admin.deleteUser(user.id);
+        await adminClient.auth.admin.deleteUser(user.id);
       }
     }
 
-    // 3. Delete all transactional data (Avoid FK violations)
-    await getSupabaseAdmin().from('order_items').delete().eq('store_id', storeId);
-    await getSupabaseAdmin().from('orders').delete().eq('store_id', storeId);
-    await getSupabaseAdmin().from('inventory').delete().eq('store_id', storeId);
-    await getSupabaseAdmin().from('products').delete().eq('store_id', storeId);
-    await getSupabaseAdmin().from('attendance').delete().eq('store_id', storeId);
-    await getSupabaseAdmin().from('payroll').delete().eq('store_id', storeId);
-    
-    // 4. Delete profiles (This is redundant if Auth Delete triggered it, but safe)
-    await getSupabaseAdmin().from('profiles').delete().eq('store_id', storeId);
+    // 12. Delete profiles
+    await adminClient.from('profiles').delete().eq('store_id', storeId);
 
-    // 5. Finally, delete the store itself
-    const { error } = await getSupabaseAdmin()
+    // 13. Finally, delete the store itself
+    const { error } = await adminClient
       .from('stores')
       .delete()
       .eq('id', storeId);
