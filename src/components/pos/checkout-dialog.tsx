@@ -158,6 +158,8 @@ export function CheckoutDialog({
         unit_price: item.price,
         total_price: item.price * item.quantity,
         store_id: storeToUse,
+        variant_id: item.variant_id || null,
+        serial_number: item.serial_number || null,
       }));
 
       const { error: itemsError } = await supabase
@@ -168,10 +170,37 @@ export function CheckoutDialog({
 
       // Update inventory
       for (const item of items) {
-        await supabase
-          .from('products')
-          .update({ stock_quantity: Math.max(0, item.stock_quantity - item.quantity) })
-          .eq('id', item.id);
+        if (item.variant_id) {
+          // Decrement variant stock
+          await supabase
+            .from('product_variants')
+            .update({ stock_quantity: Math.max(0, item.stock_quantity - item.quantity) })
+            .eq('id', item.variant_id);
+
+          // If serialized, flag scanned serial as sold
+          if (item.serial_number) {
+            await supabase
+              .from('serialized_inventory')
+              .update({ status: 'sold', order_id: order.id })
+              .eq('variant_id', item.variant_id)
+              .eq('serial_number', item.serial_number);
+          }
+        } else {
+          // Decrement parent product stock
+          await supabase
+            .from('products')
+            .update({ stock_quantity: Math.max(0, item.stock_quantity - item.quantity) })
+            .eq('id', item.id);
+
+          // If serialized (but no variants), flag scanned serial as sold
+          if (item.serial_number) {
+            await supabase
+              .from('serialized_inventory')
+              .update({ status: 'sold', order_id: order.id })
+              .eq('product_id', item.id)
+              .eq('serial_number', item.serial_number);
+          }
+        }
           
         await supabase
           .from('inventory_logs')

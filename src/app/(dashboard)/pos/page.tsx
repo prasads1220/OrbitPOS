@@ -15,21 +15,34 @@ import {
   ShoppingCart,
   Scan,
   LayoutGrid,
-  List
+  List,
+  ChevronRight,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Database } from '@/types/supabase';
 import { CheckoutDialog } from '@/components/pos/checkout-dialog';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
-type Product = Database['public']['Tables']['products']['Row'];
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog';
 
+type Product = Database['public']['Tables']['products']['Row'] & {
+  has_variants: boolean;
+  is_serialized: boolean;
+};
 import { useAuthStore } from '@/store/useAuthStore';
-
 import { useActiveStore } from '@/store/useActiveStore';
 
 export default function POSPage() {
@@ -40,6 +53,8 @@ export default function POSPage() {
   const [loading, setLoading] = useState(true);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // Cart Actions
   const items = useCartStore(state => state.items);
   const addItem = useCartStore(state => state.addItem);
   const removeItem = useCartStore(state => state.removeItem);
@@ -51,8 +66,19 @@ export default function POSPage() {
   const discountType = useCartStore(state => state.discountType);
   const setDiscount = useCartStore(state => state.setDiscount);
   const clearCart = useCartStore(state => state.clearCart);
+
   const [initialMethod, setInitialMethod] = useState<'cash' | 'card'>('cash');
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // States for Variant & Serial Overlay Prompt
+  const [customizerOpen, setCustomizerOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productVariants, setProductVariants] = useState<any[]>([]);
+  const [selectedVariant, setSelectedVariant] = useState<any | null>(null);
+  
+  const [inStockSerials, setInStockSerials] = useState<any[]>([]);
+  const [selectedSerial, setSelectedSerial] = useState<string>('');
+  const [manualSerialInput, setManualSerialInput] = useState('');
 
   const storeToUse = activeStoreId || profile?.store_id;
 
@@ -84,10 +110,123 @@ export default function POSPage() {
     setLoading(false);
   };
 
+  // Intercept changes in search to check for model barcode scans directly
+  const handleSearchChange = async (val: string) => {
+    setSearch(val);
+    if (!storeToUse) return;
+
+    // Check if searched value matches a variant barcode directly (for seamless register scanning)
+    if (val.length >= 4) {
+      const { data: vMatch } = await supabase
+        .from('product_variants')
+        .select('*, products(*)')
+        .eq('barcode', val)
+        .eq('store_id', storeToUse)
+        .maybeSingle();
+
+      if (vMatch && vMatch.products) {
+        setSearch('');
+        handleItemSelection(vMatch.products, vMatch);
+      }
+    }
+  };
+
+  // Handle clicking or scanning a product
+  const handleItemSelection = async (product: Product, preSelectedVariant?: any) => {
+    if (!storeToUse) return;
+
+    // A. Standard Simple Product (No variants, not serialized)
+    if (!product.has_variants && !product.is_serialized) {
+      addItem(product);
+      return;
+    }
+
+    // B. Needs Setup: Query variants & available serials
+    setSelectedProduct(product);
+    setCustomizerOpen(true);
+    setSelectedSerial('');
+    setManualSerialInput('');
+
+    // Fetch variants if applicable
+    if (product.has_variants) {
+      const { data: vars } = await supabase
+        .from('product_variants')
+        .select('*')
+        .eq('product_id', product.id);
+      
+      setProductVariants(vars || []);
+      
+      if (preSelectedVariant) {
+        setSelectedVariant(preSelectedVariant);
+        fetchSerialsForVariant(preSelectedVariant.id);
+      } else if (vars && vars.length > 0) {
+        setSelectedVariant(vars[0]);
+        fetchSerialsForVariant(vars[0].id);
+      } else {
+        setSelectedVariant(null);
+      }
+    } else {
+      setProductVariants([]);
+      setSelectedVariant(null);
+      // Fetch base product serials
+      fetchSerialsForProduct(product.id);
+    }
+  };
+
+  const fetchSerialsForVariant = async (variantId: string) => {
+    const { data: serials } = await supabase
+      .from('serialized_inventory')
+      .select('*')
+      .eq('variant_id', variantId)
+      .eq('status', 'in_stock');
+    setInStockSerials(serials || []);
+  };
+
+  const fetchSerialsForProduct = async (productId: string) => {
+    const { data: serials } = await supabase
+      .from('serialized_inventory')
+      .select('*')
+      .eq('product_id', productId)
+      .eq('status', 'in_stock');
+    setInStockSerials(serials || []);
+  };
+
+  // Finalize adding variant/serialized product to cart
+  const handleAddCustomizedToCart = () => {
+    if (!selectedProduct) return;
+
+    const requiresSerial = selectedProduct.is_serialized;
+    const finalSerial = selectedSerial || manualSerialInput.trim();
+
+    if (requiresSerial && !finalSerial) {
+      toast.error('Unique Serial Number is required for this product.');
+      return;
+    }
+
+    const price = selectedVariant ? parseFloat(selectedVariant.price) : selectedProduct.price;
+    const sku = selectedVariant ? selectedVariant.sku : selectedProduct.sku;
+    const stockQty = selectedVariant ? selectedVariant.stock_quantity : selectedProduct.stock_quantity;
+
+    addItem(selectedProduct, {
+      variant_id: selectedVariant?.id,
+      variant_name: selectedVariant?.model_name,
+      price: price,
+      sku: sku,
+      stock_quantity: stockQty,
+      serial_number: finalSerial || undefined
+    });
+
+    setCustomizerOpen(false);
+    setSelectedProduct(null);
+    setSelectedVariant(null);
+    setSelectedSerial('');
+    setManualSerialInput('');
+  };
+
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) || 
     p.sku.toLowerCase().includes(search.toLowerCase()) ||
-    p.barcode?.includes(search)
+    (p.barcode || '').includes(search)
   );
 
   return (
@@ -100,9 +239,9 @@ export default function POSPage() {
             <Input 
               ref={searchInputRef}
               placeholder="Scan barcode or search products... (F2)" 
-              className="pl-12 h-14 bg-white border-transparent rounded-2xl shadow-sm focus:ring-2 focus:ring-[#0071e3]/10 transition-all font-medium text-lg"
+              className="pl-12 h-14 bg-white border-transparent rounded-2xl shadow-sm focus:ring-2 focus:ring-[#0071e3]/10 transition-all font-bold text-lg"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
             />
           </div>
           <div className="flex items-center bg-white p-1.5 rounded-2xl shadow-sm border border-gray-50">
@@ -144,9 +283,8 @@ export default function POSPage() {
                     "group relative bg-white rounded-3xl border border-transparent hover:border-[#0071e3]/30 shadow-sm hover:shadow-[0_20px_50px_rgba(0,0,0,0.12)] hover:-translate-y-1.5 transition-all duration-500 cursor-pointer overflow-hidden",
                     viewMode === 'list' && "flex items-center gap-6 p-4"
                   )}
-                  onClick={() => addItem(product)}
+                  onClick={() => handleItemSelection(product)}
                 >
-                  {/* Glossy Shine Effect Overlay */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-20">
                     <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                   </div>
@@ -170,17 +308,21 @@ export default function POSPage() {
                   <div className={cn("p-5 relative z-10", viewMode === 'list' && "flex-1 p-0")}>
                     <div className="flex items-center justify-between mb-1">
                       <h3 className="font-bold text-black group-hover:text-[#0071e3] transition-colors truncate text-[15px]">{product.name}</h3>
-                      <Badge variant="outline" className={cn(
-                        "text-[9px] font-black h-4 px-1 rounded-sm",
-                        product.product_type === 'gadget' ? "bg-purple-50 text-purple-600 border-purple-100" : "bg-blue-50 text-blue-600 border-blue-100"
-                      )}>
-                        {product.product_type || 'non-gadget'}
-                      </Badge>
+                      <div className="flex gap-1">
+                        {product.has_variants && (
+                          <Badge className="bg-amber-50 text-amber-600 border-amber-100 font-bold text-[9px] px-1">Models</Badge>
+                        )}
+                        {product.is_serialized && (
+                          <Badge className="bg-blue-50 text-blue-600 border-blue-100 font-bold text-[9px] px-1">Serial</Badge>
+                        )}
+                      </div>
                     </div>
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight mb-2 truncate">{product.vendor_name || 'Generic Vendor'}</p>
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex flex-col">
-                        <p className="text-xl font-black text-black">${product.price.toFixed(2)}</p>
+                        <p className="text-xl font-black text-black">
+                          {product.has_variants ? 'Varies' : `$${product.price.toFixed(2)}`}
+                        </p>
                         <p className={cn(
                           "text-[10px] font-bold uppercase tracking-wider",
                           product.stock_quantity <= 0 ? "text-rose-500" : "text-gray-400"
@@ -189,7 +331,7 @@ export default function POSPage() {
                         </p>
                       </div>
                       <span className="text-[10px] font-bold text-gray-400 tracking-tight uppercase">
-                        {product.sku}
+                        {product.has_variants ? 'VARIANTS' : product.sku}
                       </span>
                     </div>
                   </div>
@@ -239,29 +381,48 @@ export default function POSPage() {
           ) : (
             <div className="py-6 space-y-5">
               {items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between group animate-in slide-in-from-right-4 duration-300">
+                <div key={item.id + '-' + (item.variant_id || '')} className="flex items-center justify-between group animate-in slide-in-from-right-4 duration-300">
                   <div className="flex-1 min-w-0 pr-4">
                     <p className="text-[13px] font-bold text-black truncate mb-0.5">{item.name}</p>
-                    <p className="text-[12px] font-black text-[#0071e3]">${item.price.toFixed(2)}</p>
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      <p className="text-[12px] font-black text-[#0071e3]">${item.price.toFixed(2)}</p>
+                      {item.variant_name && (
+                        <Badge className="bg-amber-50 text-amber-600 border-amber-100 font-bold text-[9px] h-4 py-0 px-1 ml-0.5">
+                          {item.variant_name}
+                        </Badge>
+                      )}
+                      {item.serial_number && (
+                        <Badge className="bg-blue-50 text-blue-600 border-blue-100 font-bold text-[9px] h-4 py-0 px-1 ml-0.5">
+                          S/N: {item.serial_number}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center bg-[#f5f5f7] rounded-xl p-1 border border-gray-100 shadow-sm">
                       <button 
                         className="p-1 hover:bg-white hover:shadow-sm rounded-lg transition-all disabled:opacity-30" 
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.id, item.quantity - 1, item.variant_id)}
                       >
                         <Minus className="h-3 w-3" />
                       </button>
                       <span className="px-2 text-[12px] font-black min-w-6 text-center">{item.quantity}</span>
                       <button 
                         className="p-1 hover:bg-white hover:shadow-sm rounded-lg transition-all disabled:opacity-30" 
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.id, item.quantity + 1, item.variant_id)}
                         disabled={item.quantity >= item.stock_quantity}
                       >
                         <Plus className="h-3 w-3" />
                       </button>
                     </div>
                     <p className="text-[13px] font-black min-w-14 text-right text-black">${(item.price * item.quantity).toFixed(2)}</p>
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => removeItem(item.id, item.variant_id)}
+                      className="text-gray-300 hover:text-rose-500 rounded-lg h-7 w-7 p-0 ml-1"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -269,9 +430,8 @@ export default function POSPage() {
           )}
         </ScrollArea>
 
-        {/* Cart Footer (Totals & Checkout) */}
+        {/* Cart Footer */}
         <div className="px-6 py-6 bg-[#fbfbfd] border-t border-gray-100 space-y-5 shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)]">
-          {/* Totals Breakdown */}
           <div className="space-y-2">
             <div className="flex justify-between text-[13px] text-gray-400 font-bold">
               <span>Subtotal</span>
@@ -282,7 +442,6 @@ export default function POSPage() {
               <span className="text-black">${tax.toFixed(2)}</span>
             </div>
             
-            {/* Compact Discount UI */}
             <div className="bg-rose-50/30 rounded-xl p-3 border border-rose-100/40">
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
@@ -313,7 +472,7 @@ export default function POSPage() {
                     onClick={() => setDiscount(pct, 'percentage')}
                     className={cn(
                       "flex-1 py-1 rounded-lg text-[10px] font-bold border transition-all",
-                      discount === pct && discountType === 'percentage' ? "bg-rose-500 text-white border-rose-500" : "bg-white text-rose-500 border-rose-100"
+                      discount === pct && discountType === 'percentage' ? "bg-rose-500 text-white" : "bg-white text-rose-500 border-rose-100"
                     )}
                   >
                     {pct}%
@@ -330,7 +489,6 @@ export default function POSPage() {
             </div>
           </div>
 
-          {/* Grand Total */}
           <div className="pt-2 border-t border-dashed border-gray-200">
             <div className="flex justify-between items-center">
               <span className="text-sm font-black text-black uppercase tracking-widest">Total Due</span>
@@ -338,7 +496,6 @@ export default function POSPage() {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-3">
             <Button 
               variant="outline" 
@@ -365,6 +522,7 @@ export default function POSPage() {
           </Button>
         </div>
 
+        {/* Checkout Dialog */}
         <CheckoutDialog 
           open={checkoutOpen} 
           onOpenChange={setCheckoutOpen}
@@ -377,6 +535,124 @@ export default function POSPage() {
           initialMethod={initialMethod}
         />
       </div>
+
+      {/* Dynamic Variant / Serial Customizer Prompt Overlay Dialog */}
+      <Dialog open={customizerOpen} onOpenChange={setCustomizerOpen}>
+        <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-[2rem] border-none shadow-2xl">
+          <div className="p-8 bg-[#fbfbfd] border-b border-gray-50 flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-xl font-black text-black tracking-tight">Configure Item</DialogTitle>
+              <p className="text-gray-400 font-bold text-[11px] mt-0.5">{selectedProduct?.name}</p>
+            </div>
+            {selectedProduct?.is_serialized && (
+              <Badge className="bg-blue-50 text-blue-600 border-blue-100 font-bold text-[9px]">Serialized</Badge>
+            )}
+          </div>
+
+          <div className="p-8 space-y-6">
+            {/* Step 1: Select Model/Variant if has_variants is true */}
+            {selectedProduct?.has_variants && (
+              <div className="space-y-3">
+                <Label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Select Model / Variant</Label>
+                <div className="grid grid-cols-1 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar">
+                  {productVariants.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedVariant(v);
+                        setSelectedSerial('');
+                        if (selectedProduct.is_serialized) {
+                          fetchSerialsForVariant(v.id);
+                        }
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between p-3.5 rounded-xl border text-left font-bold text-[13px] transition-all",
+                        selectedVariant?.id === v.id 
+                          ? "border-[#0071e3] bg-blue-50/30 text-[#0071e3] shadow-sm" 
+                          : "border-gray-100 hover:bg-gray-50 text-gray-700"
+                      )}
+                    >
+                      <div>
+                        <p>{v.model_name}</p>
+                        <p className="text-[10px] text-gray-400 font-medium">SKU: {v.sku}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-black font-black">${parseFloat(v.price).toFixed(2)}</p>
+                        <p className="text-[9px] text-gray-400">Stock: {v.stock_quantity}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Scan / Select Serial Number if is_serialized is true */}
+            {selectedProduct?.is_serialized && (
+              <div className="space-y-4 pt-2 border-t border-dashed border-gray-100">
+                <div className="flex flex-col gap-1">
+                  <Label className="text-[11px] font-bold text-[#0071e3] uppercase tracking-widest">Scan or Select Serial Number</Label>
+                  <p className="text-[10px] text-gray-400 font-medium">Please link the physical item barcode.</p>
+                </div>
+
+                {/* Direct scan or manual text input */}
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="Scan / Type Serial S/N..."
+                    className="h-11 bg-[#f5f5f7] border-transparent rounded-xl focus:bg-white font-bold text-[13px]"
+                    value={manualSerialInput}
+                    onChange={(e) => {
+                      setManualSerialInput(e.target.value);
+                      setSelectedSerial(''); // Clear dropdown choice if manually typing
+                    }}
+                  />
+                  <div className="h-11 w-11 bg-blue-50 text-[#0071e3] rounded-xl flex items-center justify-center border border-blue-100 shrink-0">
+                    <Scan className="h-5 w-5" />
+                  </div>
+                </div>
+
+                {/* Dropdown of in-stock items */}
+                {inStockSerials.length > 0 ? (
+                  <div className="space-y-2">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Or select available in stock ({inStockSerials.length}):</span>
+                    <select
+                      className="w-full h-11 bg-[#f5f5f7] border-transparent rounded-xl focus:bg-white font-bold text-[13px] px-3 outline-none cursor-pointer"
+                      value={selectedSerial}
+                      onChange={(e) => {
+                        setSelectedSerial(e.target.value);
+                        setManualSerialInput(''); // Clear manual typing if dropdown chosen
+                      }}
+                    >
+                      <option value="">-- Choose Serial S/N --</option>
+                      {inStockSerials.map((s) => (
+                        <option key={s.id} value={s.serial_number}>
+                          {s.serial_number}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 p-3 bg-rose-50/50 border border-rose-100/50 rounded-xl text-rose-600">
+                    <AlertCircle className="h-4.5 w-4.5 shrink-0" />
+                    <span className="text-[11px] font-bold">No serial numbers currently registered in stock. You can type one manually to force checkout.</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="p-8 border-t border-gray-50 flex items-center justify-end gap-3 bg-[#fbfbfd]">
+            <Button variant="ghost" className="rounded-xl font-bold text-gray-400" onClick={() => setCustomizerOpen(false)}>Cancel</Button>
+            <Button 
+              className="bg-[#0071e3] hover:bg-[#0077ed] text-white font-black rounded-xl h-11 px-6 shadow-md shadow-blue-500/10 active:scale-95 transition-all"
+              onClick={handleAddCustomizedToCart}
+            >
+              Add to Cart
+              <ChevronRight className="ml-1.5 h-4 w-4" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

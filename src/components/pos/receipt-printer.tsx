@@ -75,12 +75,20 @@ export function ReceiptPrinter({ receiptData }: ReceiptPrinterProps) {
             <span className="w-1/4 text-right">TOTAL</span>
           </div>
           {receiptData.items.map((item, i) => (
-            <div key={i} className="flex justify-between">
-              <span className="w-1/2 truncate">{item.name || item.products?.name}</span>
-              <span className="w-1/4 text-center">x{item.quantity}</span>
-              <span className="w-1/4 text-right">
-                {receiptData.type === 'refund' ? '-' : ''}${((item.quantity * (item.price || item.unit_price)) || 0).toFixed(2)}
-              </span>
+            <div key={i} className="space-y-0.5 border-b border-gray-50 pb-1">
+              <div className="flex justify-between">
+                <span className="w-1/2 truncate">{item.name || item.products?.name}</span>
+                <span className="w-1/4 text-center">x{item.quantity}</span>
+                <span className="w-1/4 text-right">
+                  {receiptData.type === 'refund' ? '-' : ''}${((item.quantity * (item.price || item.unit_price)) || 0).toFixed(2)}
+                </span>
+              </div>
+              {(item.variant_name || item.serial_number) && (
+                <div className="text-[9px] opacity-75 italic pl-2 flex flex-col">
+                  {item.variant_name && <span>Model: {item.variant_name}</span>}
+                  {item.serial_number && <span>S/N: {item.serial_number}</span>}
+                </div>
+              )}
             </div>
           ))}
         </div>

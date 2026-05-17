@@ -93,7 +93,10 @@ export default function OrdersPage() {
             refunded_quantity,
             total_price,
             unit_price,
-            products ( name, price, sku )
+            variant_id,
+            serial_number,
+            products ( name, price, sku ),
+            product_variants ( model_name, sku, barcode )
           )
         `)
         .eq('store_id', storeToUse)
@@ -230,7 +233,9 @@ export default function OrdersPage() {
         name: item.products?.name,
         quantity: item.quantity,
         unit_price: item.unit_price,
-        price: item.unit_price
+        price: item.unit_price,
+        variant_name: item.product_variants?.model_name || null,
+        serial_number: item.serial_number || null,
       })),
       subtotal: subtotal,
       tax: order.tax_amount || 0,
@@ -403,7 +408,19 @@ export default function OrdersPage() {
                   <div key={idx} className="flex justify-between items-start">
                     <div>
                       <p className="font-black text-black text-[15px]">{item.products?.name}</p>
-                      <p className="text-[11px] text-gray-400 font-bold uppercase">{item.quantity} x ${item.unit_price?.toFixed(2)}</p>
+                      <div className="flex flex-wrap items-center gap-1 mt-1">
+                        <span className="text-[11px] text-gray-400 font-bold uppercase">{item.quantity} x ${item.unit_price?.toFixed(2)}</span>
+                        {item.product_variants?.model_name && (
+                          <Badge className="bg-amber-50 text-amber-600 border-amber-100 font-bold text-[9px] h-4 py-0 px-1 ml-0.5">
+                            {item.product_variants.model_name}
+                          </Badge>
+                        )}
+                        {item.serial_number && (
+                          <Badge className="bg-blue-50 text-blue-600 border-blue-100 font-bold text-[9px] h-4 py-0 px-1 ml-0.5">
+                            S/N: {item.serial_number}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <span className="font-black text-black">${item.total_price.toFixed(2)}</span>
                   </div>

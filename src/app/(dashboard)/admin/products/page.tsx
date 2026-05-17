@@ -45,7 +45,10 @@ import { downloadCSV } from '@/lib/export';
 
 import { useActiveStore } from '@/store/useActiveStore';
 
-type Product = Database['public']['Tables']['products']['Row'];
+type Product = Database['public']['Tables']['products']['Row'] & {
+  has_variants: boolean;
+  is_serialized: boolean;
+};
 
 export default function ProductsPage() {
   const { profile } = useAuthStore();
@@ -239,11 +242,21 @@ export default function ProductsPage() {
                       </div>
                       <div>
                         <p className="font-bold text-black group-hover:text-[#0071e3] transition-colors">{product.name}</p>
-                        <p className="text-[11px] text-gray-400 font-medium truncate max-w-[150px]">{product.description || 'No description'}</p>
+                        <div className="flex flex-wrap items-center gap-1 mt-1">
+                          <p className="text-[11px] text-gray-400 font-medium truncate max-w-[150px]">{product.description || 'No description'}</p>
+                          {product.has_variants && (
+                            <Badge className="bg-amber-50 text-amber-600 border-amber-100 font-bold text-[9px] h-4 py-0 px-1.5">Multi-Model</Badge>
+                          )}
+                          {product.is_serialized && (
+                            <Badge className="bg-blue-50 text-blue-600 border-blue-100 font-bold text-[9px] h-4 py-0 px-1.5">Serialized</Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono text-[12px] text-gray-500">{product.sku}</TableCell>
+                  <TableCell className="font-mono text-[12px] text-gray-500">
+                    {product.has_variants ? "VARIANTS" : product.sku}
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
                       <p className="font-bold text-black text-[13px]">{product.vendor_name || '-'}</p>
@@ -259,7 +272,7 @@ export default function ProductsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-black text-black text-lg">
-                    ${product.price.toFixed(2)}
+                    {product.has_variants ? "Varies" : `$${product.price.toFixed(2)}`}
                   </TableCell>
                   <TableCell className="text-right">
                     <span className={cn(

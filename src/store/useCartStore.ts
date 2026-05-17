@@ -2,17 +2,24 @@ import { create } from 'zustand';
 import { Database } from '@/types/supabase';
 import { toast } from 'sonner';
 
-type Product = Database['public']['Tables']['products']['Row'];
+type Product = Database['public']['Tables']['products']['Row'] & {
+  has_variants?: boolean;
+  is_serialized?: boolean;
+};
 
 interface CartItem extends Product {
   quantity: number;
+  variant_id?: string;
+  variant_name?: string;
+  serial_number?: string;
+  selected_serials?: string[];
 }
 
 interface CartState {
   items: CartItem[];
-  addItem: (product: Product) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addItem: (product: Product, details?: { variant_id?: string; variant_name?: string; price?: number; serial_number?: string; selected_serials?: string[]; sku?: string; stock_quantity?: number }) => void;
+  removeItem: (productId: string, variantId?: string) => void;
+  updateQuantity: (productId: string, quantity: number, variantId?: string) => void;
   clearCart: () => void;
   total: number;
   subtotal: number;
@@ -25,36 +32,68 @@ interface CartState {
 
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
-  addItem: (product) => {
+  addItem: (product, details) => {
     const items = get().items;
-    const existingItem = items.find((item) => item.id === product.id);
+    const existingItem = items.find((item) => 
+      item.id === product.id && 
+      item.variant_id === details?.variant_id
+    );
+
+    const priceToUse = details?.price !== undefined ? details.price : product.price;
+    const skuToUse = details?.sku || product.sku;
+    const stockLimit = details?.stock_quantity !== undefined ? details.stock_quantity : product.stock_quantity;
 
     if (existingItem) {
-      if (existingItem.quantity >= product.stock_quantity) {
-        toast.error(`Only ${product.stock_quantity} items available in stock`);
+      if (existingItem.quantity >= stockLimit) {
+        toast.error(`Only ${stockLimit} items available in stock`);
         return;
       }
       set({
         items: items.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          (item.id === product.id && item.variant_id === details?.variant_id) 
+            ? { 
+                ...item, 
+                quantity: item.quantity + 1,
+                selected_serials: [...(item.selected_serials || []), ...(details?.serial_number ? [details.serial_number] : [])]
+              } 
+            : item
         ),
       });
     } else {
-      if (product.stock_quantity <= 0) {
+      if (stockLimit <= 0) {
         toast.error('Item is out of stock');
         return;
       }
-      set({ items: [...items, { ...product, quantity: 1 }] });
+      set({ 
+        items: [
+          ...items, 
+          { 
+            ...product, 
+            price: priceToUse,
+            sku: skuToUse,
+            stock_quantity: stockLimit,
+            quantity: 1,
+            variant_id: details?.variant_id,
+            variant_name: details?.variant_name,
+            serial_number: details?.serial_number,
+            selected_serials: details?.serial_number ? [details.serial_number] : []
+          }
+        ] 
+      });
     }
     get().calculateTotals();
   },
-  removeItem: (productId) => {
-    set({ items: get().items.filter((item) => item.id !== productId) });
+  removeItem: (productId, variantId) => {
+    set({ 
+      items: get().items.filter((item) => 
+        !(item.id === productId && item.variant_id === variantId)
+      ) 
+    });
     get().calculateTotals();
   },
-  updateQuantity: (productId, quantity) => {
+  updateQuantity: (productId, quantity, variantId) => {
     const items = get().items;
-    const item = items.find(i => i.id === productId);
+    const item = items.find(i => i.id === productId && i.variant_id === variantId);
     
     if (!item) return;
 
@@ -64,12 +103,12 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
 
     if (quantity <= 0) {
-      get().removeItem(productId);
+      get().removeItem(productId, variantId);
       return;
     }
     set({
       items: items.map((i) =>
-        i.id === productId ? { ...i, quantity } : i
+        (i.id === productId && i.variant_id === variantId) ? { ...i, quantity } : i
       ),
     });
     get().calculateTotals();
