@@ -117,6 +117,7 @@ export default function ProductsPage() {
     if (error) {
       toast.error('Failed to delete product');
     } else {
+      setProducts(prev => prev.filter(p => p.id !== id));
       toast.success('Product deleted');
     }
   };
@@ -246,7 +247,9 @@ export default function ProductsPage() {
                       <div>
                         <p className="font-bold text-black group-hover:text-[#0071e3] transition-colors">{product.name}</p>
                         <div className="flex flex-wrap items-center gap-1 mt-1">
-                          <p className="text-[11px] text-gray-400 font-medium truncate max-w-[150px]">{product.description || 'No description'}</p>
+                          <p className="text-[11px] text-gray-400 font-medium truncate max-w-[200px]">
+                            {[(product as any).model, (product as any).color].filter(Boolean).join(' · ') || product.sku}
+                          </p>
                           {product.has_variants && (
                             <Badge className="bg-amber-50 text-amber-600 border-amber-100 font-bold text-[9px] h-4 py-0 px-1.5">Multi-Model</Badge>
                           )}
