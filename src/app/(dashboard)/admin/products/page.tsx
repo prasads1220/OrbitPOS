@@ -107,18 +107,40 @@ export default function ProductsPage() {
   );
 
   const deleteProduct = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+    if (!confirm('Are you sure you want to permanently delete this product and all its related data (orders history, serial numbers, variants)?')) return;
 
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', id);
+    try {
+      // 1. Delete serialized inventory entries
+      await supabase
+        .from('serialized_inventory')
+        .delete()
+        .eq('product_id', id);
 
-    if (error) {
-      toast.error('Failed to delete product');
-    } else {
+      // 2. Delete order items referencing this product
+      await supabase
+        .from('order_items')
+        .delete()
+        .eq('product_id', id);
+
+      // 3. Delete product variants
+      await supabase
+        .from('product_variants')
+        .delete()
+        .eq('product_id', id);
+
+      // 4. Finally delete the product itself
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
       setProducts(prev => prev.filter(p => p.id !== id));
-      toast.success('Product deleted');
+      toast.success('Product deleted successfully');
+    } catch (error: any) {
+      console.error('Delete product error:', error);
+      toast.error(error.message || 'Failed to delete product');
     }
   };
 
