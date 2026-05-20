@@ -36,9 +36,9 @@ ALTER TABLE attendance ADD COLUMN IF NOT EXISTS store_id UUID REFERENCES stores(
 CREATE OR REPLACE FUNCTION current_user_store_id()
 RETURNS UUID AS $$
 BEGIN
-  RETURN (SELECT store_id FROM profiles WHERE id = auth.uid());
+  RETURN (SELECT store_id FROM public.profiles WHERE id = auth.uid());
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public;
 
 -- 5. Enable RLS on all tables
 ALTER TABLE stores ENABLE ROW LEVEL SECURITY;
