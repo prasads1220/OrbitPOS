@@ -40,6 +40,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public;
 
+ALTER FUNCTION public.current_user_store_id() OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION public.current_user_store_id() TO PUBLIC;
+
 -- 5. Enable RLS on all tables
 ALTER TABLE stores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
