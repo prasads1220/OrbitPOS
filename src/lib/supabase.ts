@@ -21,7 +21,7 @@ const RLS_TABLES = new Set([
  * but routes through server actions (bypassing RLS).
  */
 function createSafeQueryBuilder(table: string) {
-  type Filter = { column: string; op: string; value: any };
+  type Filter = { column: string; op: string; value: any; value2?: any };
   let _select = '*';
   let _filters: Filter[] = [];
   let _order: { column: string; ascending?: boolean } | undefined;
