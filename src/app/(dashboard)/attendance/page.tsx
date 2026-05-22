@@ -49,7 +49,7 @@ export default function AttendancePage() {
       .select('*')
       .eq('employee_id', profile.id)
       .filter('clock_out', 'is', 'null')
-      .single();
+      .maybeSingle();
 
     setActiveShift(activeData);
 

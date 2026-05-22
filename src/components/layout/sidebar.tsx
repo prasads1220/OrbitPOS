@@ -39,6 +39,7 @@ const navItems = [
   { name: 'Time Punch', href: '/attendance', icon: Clock, roles: ['admin', 'cashier', 'employee'] },
   { name: 'Shift Schedule', href: '/schedule', icon: Calendar, roles: ['admin', 'cashier', 'employee'] },
   { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin', 'cashier', 'employee'] },
+  { name: 'Activity Logs', href: '/admin/activity-logs', icon: ClipboardList, roles: ['admin'] },
   { name: 'Infrastructure', href: '/super-admin', icon: ShieldCheck, roles: ['superadmin'] },
 ];
 

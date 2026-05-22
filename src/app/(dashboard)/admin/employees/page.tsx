@@ -52,6 +52,7 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [editingRates, setEditingRates] = useState<Record<string, string>>({});
+  const [onlineEmployees, setOnlineEmployees] = useState<Set<string>>(new Set());
 
   const storeToUse = activeStoreId || profile?.store_id;
 
@@ -64,12 +65,27 @@ export default function EmployeesPage() {
   const fetchEmployees = async () => {
     if (!storeToUse) return;
     setLoading(true);
-    const { data } = await supabase
+    
+    // Fetch employees
+    const { data: empData } = await supabase
       .from('profiles')
       .select('*')
       .eq('store_id', storeToUse)
       .order('created_at', { ascending: false });
-    setEmployees(data || []);
+      
+    // Fetch active shifts to determine online status
+    const { data: activeShifts } = await supabase
+      .from('attendance')
+      .select('employee_id')
+      .eq('store_id', storeToUse)
+      .filter('clock_out', 'is', 'null');
+      
+    if (activeShifts) {
+      const onlineIds = new Set(activeShifts.map(s => s.employee_id));
+      setOnlineEmployees(onlineIds);
+    }
+      
+    setEmployees(empData || []);
     setLoading(false);
   };
 
@@ -200,6 +216,7 @@ export default function EmployeesPage() {
               <TableHead className="font-bold text-black pl-8">Employee</TableHead>
               <TableHead className="font-bold text-black">Email</TableHead>
               <TableHead className="font-bold text-black">Role</TableHead>
+              <TableHead className="font-bold text-black">Status</TableHead>
               <TableHead className="font-bold text-black">Pay</TableHead>
               <TableHead className="font-bold text-black">Joined</TableHead>
               {isAdmin && <TableHead className="font-bold text-black text-right pr-8">Actions</TableHead>}
@@ -238,6 +255,19 @@ export default function EmployeesPage() {
                       <Badge className={`${cfg.color} font-bold border`}>
                         {cfg.label}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {onlineEmployees.has(emp.id) ? (
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full font-bold text-[12px] border border-emerald-100">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                          Online
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-gray-50 text-gray-500 rounded-full font-bold text-[12px] border border-gray-100">
+                          <span className="w-2 h-2 rounded-full bg-gray-300" />
+                          Offline
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       {isAdmin ? (
