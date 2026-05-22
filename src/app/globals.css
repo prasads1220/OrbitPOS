@@ -167,6 +167,17 @@
   animation: float 6s ease-in-out infinite;
 }
 
+@keyframes float-bubble {
+  0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+  20% { opacity: 0.6; }
+  80% { opacity: 0.6; }
+  100% { transform: translateY(-20vh) scale(1.2); opacity: 0; }
+}
+
+.animate-float-bubble {
+  animation: float-bubble 15s linear infinite;
+}
+
 @keyframes float-subtle {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-5px); }
