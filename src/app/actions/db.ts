@@ -15,6 +15,7 @@ export async function serverQuery(
     filters?: { column: string; op: 'eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte' | 'in' | 'is' | 'filter'; value: any; value2?: any }[];
     order?: { column: string; ascending?: boolean };
     limit?: number;
+    range?: [number, number];
     single?: boolean;
     maybeSingle?: boolean;
   }
@@ -41,6 +42,10 @@ export async function serverQuery(
 
     if (options?.limit) {
       query = query.limit(options.limit);
+    }
+
+    if (options?.range) {
+      query = query.range(options.range[0], options.range[1]);
     }
 
     if (options?.single) {

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/useAuthStore';
 import { format } from 'date-fns';
-import { RefreshCw, Activity, User, MapPin } from 'lucide-react';
+import { RefreshCw, Activity, User, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -20,10 +20,17 @@ export default function ActivityLogsPage() {
   const { profile } = useAuthStore();
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  
+  const PAGE_SIZE = 15;
 
   const fetchLogs = async () => {
     setLoading(true);
     try {
+      const from = (page - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE; // Fetch one extra to check if next page exists
+      
       const { data, error } = await supabase
         .from('activity_logs')
         .select(`
@@ -35,12 +42,18 @@ export default function ActivityLogsPage() {
           stores:store_id (name)
         `)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .range(from, to);
 
       if (error) {
         console.error('Error fetching logs:', error);
       } else {
-        setLogs(data || []);
+        if (data && data.length > PAGE_SIZE) {
+          setHasNextPage(true);
+          setLogs(data.slice(0, PAGE_SIZE));
+        } else {
+          setHasNextPage(false);
+          setLogs(data || []);
+        }
       }
     } catch (err) {
       console.error('Exception fetching logs:', err);
@@ -53,7 +66,7 @@ export default function ActivityLogsPage() {
     if (profile?.role === 'admin') {
       fetchLogs();
     }
-  }, [profile]);
+  }, [profile, page]);
 
   if (profile?.role !== 'admin') {
     return (
@@ -150,6 +163,35 @@ export default function ActivityLogsPage() {
             )}
           </TableBody>
         </Table>
+        
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between px-8 py-4 border-t border-gray-50 bg-gray-50/30">
+          <p className="text-[13px] font-medium text-gray-500">
+            Page {page}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 rounded-lg font-bold"
+              disabled={page === 1 || loading}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Previous
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 rounded-lg font-bold"
+              disabled={!hasNextPage || loading}
+              onClick={() => setPage(p => p + 1)}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

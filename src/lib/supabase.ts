@@ -26,6 +26,7 @@ function createSafeQueryBuilder(table: string) {
   let _filters: Filter[] = [];
   let _order: { column: string; ascending?: boolean } | undefined;
   let _limit: number | undefined;
+  let _range: [number, number] | undefined;
   let _insertData: any = null;
   let _updateData: any = null;
   let _isDelete = false;
@@ -43,6 +44,7 @@ function createSafeQueryBuilder(table: string) {
     filter(col: string, op: string, val: any) { _filters.push({ column: col, op: 'filter', value: op, value2: val }); return chain; },
     order(col: string, opts?: { ascending?: boolean }) { _order = { column: col, ascending: opts?.ascending }; return chain; },
     limit(n: number) { _limit = n; return chain; },
+    range(from: number, to: number) { _range = [from, to]; return chain; },
     insert(data: any) { _insertData = data; return chain; },
     update(data: any) { _updateData = data; return chain; },
     delete() { _isDelete = true; return chain; },
@@ -53,7 +55,7 @@ function createSafeQueryBuilder(table: string) {
         const d = Array.isArray(r.data) ? r.data[0] : r.data;
         return { data: d, error: r.error ? { message: r.error, code: 'SERVER' } : null };
       }
-      const r = await serverQuery(table, { select: _select, filters: _filters as any, order: _order, limit: _limit, single: true });
+      const r = await serverQuery(table, { select: _select, filters: _filters as any, order: _order, limit: _limit, range: _range, single: true });
       return { data: r.data, error: r.error ? { message: r.error, code: 'SERVER' } : null };
     },
 
@@ -63,7 +65,7 @@ function createSafeQueryBuilder(table: string) {
         const d = Array.isArray(r.data) ? r.data[0] : r.data;
         return { data: d, error: r.error ? { message: r.error, code: 'SERVER' } : null };
       }
-      const r = await serverQuery(table, { select: _select, filters: _filters as any, order: _order, limit: _limit, maybeSingle: true });
+      const r = await serverQuery(table, { select: _select, filters: _filters as any, order: _order, limit: _limit, range: _range, maybeSingle: true });
       return { data: r.data, error: r.error ? { message: r.error, code: 'SERVER' } : null };
     },
 
@@ -82,7 +84,7 @@ function createSafeQueryBuilder(table: string) {
           const r = await serverInsert(table, _insertData, { select: _select });
           return { data: r.data, error: r.error ? { message: r.error, code: 'SERVER' } : null };
         }
-        const r = await serverQuery(table, { select: _select, filters: _filters as any, order: _order, limit: _limit });
+        const r = await serverQuery(table, { select: _select, filters: _filters as any, order: _order, limit: _limit, range: _range });
         return { data: r.data, error: r.error ? { message: r.error, code: 'SERVER' } : null };
       };
       run().then(resolve, reject);
