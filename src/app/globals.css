@@ -182,7 +182,7 @@
 }
 
 .hover-glow:hover {
-  filter: drop-shadow(0 0 15px rgba(0, 113, 227, 0.3));
+  filter: drop-shadow(0 0 30px rgba(0, 113, 227, 0.6));
 }
 
 .card-hover-effect {
@@ -190,8 +190,9 @@
 }
 
 .card-hover-effect:hover {
-  transform: translateY(-8px) scale(1.01);
-  box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-12px) scale(1.03);
+  box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 @keyframes pulse-glow {
@@ -225,7 +226,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.4),
+    rgba(255, 255, 255, 0.8),
     transparent
   );
   transition: none;
@@ -236,8 +237,8 @@
 }
 
 .glossy-button:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 20px 40px -12px rgba(0, 113, 227, 0.3);
+  transform: translateY(-6px) scale(1.05);
+  box-shadow: 0 25px 50px -12px rgba(0, 113, 227, 0.5);
 }
 
 .glossy-button:active {
