@@ -268,3 +268,47 @@ export async function toggleStoreSuspension(id: string, isSuspended: boolean) {
   }
 }
 
+export async function createSuperAdmin(formData: {
+  email: string;
+  full_name: string;
+  password?: string;
+}) {
+  try {
+    // 1. Create user in Auth
+    const { data: authData, error: authError } = await getSupabaseAdmin().auth.admin.createUser({
+      email: formData.email,
+      password: formData.password || 'SuperAdmin123!',
+      email_confirm: true,
+      user_metadata: {
+        full_name: formData.full_name,
+        role: 'super_admin'
+      }
+    });
+
+    if (authError) throw authError;
+
+    // 2. Create profile entry
+    const { error: profileError } = await getSupabaseAdmin()
+      .from('profiles')
+      .insert({
+        id: authData.user.id,
+        email: formData.email,
+        full_name: formData.full_name,
+        role: 'super_admin',
+        store_id: null,
+        company_id: null,
+        hourly_rate: 0,
+      });
+
+    if (profileError) {
+      await getSupabaseAdmin().auth.admin.deleteUser(authData.user.id);
+      throw profileError;
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error creating super admin:', error);
+    return { success: false, error: error.message };
+  }
+}
+

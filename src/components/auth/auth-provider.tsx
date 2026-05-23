@@ -20,11 +20,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for changes on auth state (logged in, signed out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        if (event === 'INITIAL_SESSION') return; // Handled by getSession()
+
         if (session) {
           setUser(session.user);
           fetchProfile(session.user.id);
-        } else {
+        } else if (event === 'SIGNED_OUT') {
           setUser(null);
           useAuthStore.getState().setProfile(null);
           useAuthStore.getState().setLoading(false);
