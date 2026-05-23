@@ -128,3 +128,22 @@ export async function deleteEmployee(id: string) {
     return { error: error.message || 'Failed to delete employee' };
   }
 }
+
+export async function resetEmployeePassword(id: string, newPassword?: string) {
+  try {
+    const password = newPassword || 'Temp123!';
+    
+    // Use Supabase Admin API to update password and set metadata
+    const { error } = await getSupabaseAdmin().auth.admin.updateUserById(id, {
+      password: password,
+      user_metadata: { force_password_change: true }
+    });
+
+    if (error) throw error;
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error resetting password:', error);
+    return { error: error.message || 'Failed to reset password' };
+  }
+}

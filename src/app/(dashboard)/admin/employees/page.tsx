@@ -10,9 +10,12 @@ import {
   Shield,
   ShoppingCart,
   User,
-  Trash2
+  Trash2,
+  KeyRound
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -34,7 +37,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { CreateEmployeeDialog } from '@/components/admin/employees/create-employee-dialog';
 import { DollarSign } from 'lucide-react';
-import { updateEmployeeRole, updateEmployeePayRate, deleteEmployee } from '@/app/actions/employees';
+import { updateEmployeeRole, updateEmployeePayRate, deleteEmployee, resetEmployeePassword } from '@/app/actions/employees';
 
 import { useActiveStore } from '@/store/useActiveStore';
 
@@ -47,7 +50,7 @@ const roleConfig: Record<string, any> = {
 export default function EmployeesPage() {
   const { profile } = useAuthStore();
   const { activeStoreId } = useActiveStore();
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -155,6 +158,26 @@ export default function EmployeesPage() {
       toast.error(err.message || 'Failed to delete employee');
       setLoading(false);
     }
+  };
+
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resetEmployee, setResetEmployee] = useState<{id: string, name: string} | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+
+  const handleResetPassword = async () => {
+    if (!resetEmployee || !newPassword) return;
+    setLoading(true);
+    try {
+      const res = await resetEmployeePassword(resetEmployee.id, newPassword);
+      if (res.error) throw new Error(res.error);
+      
+      toast.success(`Password reset for ${resetEmployee.name}. They will be forced to change it on next login.`);
+      setResetModalOpen(false);
+      setNewPassword('');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to reset password');
+    }
+    setLoading(false);
   };
 
   const filtered = employees.filter(e =>
@@ -343,6 +366,19 @@ export default function EmployeesPage() {
                           <Button 
                             variant="ghost" 
                             size="icon"
+                            className="text-[#0071e3] hover:bg-[#0071e3]/10 hover:text-[#0071e3] rounded-xl h-9 w-9"
+                            onClick={() => {
+                              setResetEmployee({ id: emp.id, name: emp.full_name || 'Unknown' });
+                              setNewPassword('');
+                              setResetModalOpen(true);
+                            }}
+                            title="Reset Password"
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
                             className="text-rose-500 hover:bg-rose-50 hover:text-rose-600 rounded-xl h-9 w-9"
                             onClick={() => handleDelete(emp.id, emp.full_name)}
                           >
@@ -358,6 +394,36 @@ export default function EmployeesPage() {
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={resetModalOpen} onOpenChange={setResetModalOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem] border-none shadow-2xl p-8">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black">Reset Password</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-gray-500 font-medium">
+              Set a temporary password for <span className="font-bold text-black">{resetEmployee?.name}</span>. 
+              They will be required to change it immediately after logging in.
+            </p>
+            <div className="space-y-2">
+              <Label className="text-[12px] font-bold text-gray-400 uppercase tracking-wider ml-1">Temporary Password</Label>
+              <Input
+                type="text"
+                placeholder="e.g. Temp123!"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="h-12 bg-[#f5f5f7] border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0071e3]/20 font-bold"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="ghost" onClick={() => setResetModalOpen(false)} className="rounded-xl font-bold h-11 px-6 text-gray-500">Cancel</Button>
+            <Button onClick={handleResetPassword} className="bg-black hover:bg-gray-800 text-white rounded-xl font-bold h-11 px-6 shadow-md transition-all">
+              Reset Password
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

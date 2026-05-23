@@ -41,6 +41,13 @@ export function LoginForm({ variant = 'card', theme = 'light' }: LoginFormProps)
 
       if (error) throw error;
 
+      // Check if user is forced to change password
+      if (data.user?.user_metadata?.force_password_change === true) {
+        toast('Password reset required', { description: 'Your administrator requires you to choose a new password.' });
+        router.push('/update-password');
+        return;
+      }
+
       // 2. Fetch Profile to determine role (via server action to bypass RLS)
       const { fetchProfileServer } = await import('@/app/actions/profile');
       const { profile } = await fetchProfileServer(data.user.id);
@@ -126,7 +133,7 @@ export function LoginForm({ variant = 'card', theme = 'light' }: LoginFormProps)
               <Label htmlFor="password" className={`text-[13px] font-medium ${isDark ? 'text-gray-300' : 'text-[#1d1d1f]'}`}>
                 Password
               </Label>
-              <Link href="#" className="text-[13px] text-[#0071e3] hover:underline transition-colors">
+              <Link href="/forgot-password" className="text-[13px] text-[#0071e3] hover:underline transition-colors">
                 Forgot password?
               </Link>
             </div>
