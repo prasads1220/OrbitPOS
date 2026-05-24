@@ -40,6 +40,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ReceiptPrinter } from '@/components/pos/receipt-printer';
+import { refundOrder } from '@/app/actions/orders';
 
 import { useActiveStore } from '@/store/useActiveStore';
 
@@ -57,6 +58,12 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [receiptData, setReceiptData] = useState<any | null>(null);
+  
+  const [isRefunding, setIsRefunding] = useState(false);
+  const [refundItems, setRefundItems] = useState<{id: string, quantity: number, max: number}[]>([]);
+  const [refundReason, setRefundReason] = useState('');
+  const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
+
   const itemsPerPage = 15;
 
   const storeToUse = activeStoreId || profile?.store_id;
@@ -199,7 +206,7 @@ export default function OrdersPage() {
         </head>
         <body>
           <div id="printable-receipt">
-            ₹{printContent.innerHTML}
+            ${printContent.innerHTML}
           </div>
           <script>
             window.onload = () => {
@@ -243,6 +250,73 @@ export default function OrdersPage() {
       cashierName: order.cashier?.full_name || 'System',
       type: 'sale'
     });
+  };
+
+  const handleInitiateRefund = () => {
+    setIsRefunding(true);
+    setRefundReason('');
+    setRefundItems(
+      selectedOrder.order_items.map((item: any) => ({
+        id: item.id,
+        quantity: 0,
+        max: item.quantity - (item.refunded_quantity || 0)
+      }))
+    );
+  };
+
+  const handleSubmitRefund = async () => {
+    const itemsToRefund = refundItems.filter(i => i.quantity > 0).map(({id, quantity}) => ({id, quantity}));
+    if (itemsToRefund.length === 0) {
+      toast.error('Please select items to refund');
+      return;
+    }
+    
+    setIsSubmittingRefund(true);
+    const res = await refundOrder(selectedOrder.id, itemsToRefund, refundReason || 'Customer Request');
+    setIsSubmittingRefund(false);
+
+    if (res.success) {
+      toast.success('Refund successful');
+      setIsRefunding(false);
+      
+      let subtotal = 0;
+      const receiptItems = [];
+      for (const req of itemsToRefund) {
+        const oi = selectedOrder.order_items.find((i: any) => i.id === req.id);
+        if (oi) {
+          subtotal += oi.unit_price * req.quantity;
+          receiptItems.push({
+            name: oi.products?.name,
+            quantity: req.quantity,
+            unit_price: oi.unit_price,
+            price: oi.unit_price,
+            variant_name: oi.product_variants?.model_name || null,
+            serial_number: oi.serial_number || null,
+          });
+        }
+      }
+      const preTaxTotal = selectedOrder.total_amount - (selectedOrder.tax_amount || 0);
+      const taxRate = preTaxTotal > 0 ? (selectedOrder.tax_amount || 0) / preTaxTotal : 0;
+      const tax = subtotal * taxRate;
+      
+      setReceiptData({
+        orderId: selectedOrder.id,
+        date: format(new Date(), 'MMM d, yyyy h:mm a'),
+        method: selectedOrder.payment_method,
+        items: receiptItems,
+        subtotal: subtotal,
+        tax: tax,
+        total: subtotal + tax,
+        cashierName: profile?.full_name || 'System',
+        type: 'refund',
+        refundReason: refundReason || 'Customer Request'
+      });
+
+      setSelectedOrder(null);
+      fetchOrders();
+    } else {
+      toast.error(res.error || 'Refund failed');
+    }
   };
 
   const filteredOrders = orders.filter(o => 
@@ -395,47 +469,115 @@ export default function OrdersPage() {
       </div>
 
       {/* Re-Styled Dialog with Print Button */}
-      <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+      <Dialog open={!!selectedOrder} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedOrder(null);
+          setIsRefunding(false);
+        }
+      }}>
         <DialogContent className="max-w-md p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
           <div className="p-8 bg-[#fbfbfd] border-b border-gray-50 text-center">
             <div className="w-16 h-16 bg-black text-white rounded-2xl flex items-center justify-center mx-auto mb-4"><ShoppingBag className="h-8 w-8" /></div>
-            <DialogTitle className="text-2xl font-black text-black">Order Receipt</DialogTitle>
+            <DialogTitle className="text-2xl font-black text-black">{isRefunding ? 'Process Refund' : 'Order Receipt'}</DialogTitle>
             <p className="text-gray-400 font-bold text-[11px] mt-1 uppercase tracking-widest">#{selectedOrder?.id}</p>
           </div>
           <div className="p-8 space-y-6">
              <div className="space-y-4">
-                {selectedOrder?.order_items?.map((item: any, idx: number) => (
-                  <div key={idx} className="flex justify-between items-start">
-                    <div>
-                      <p className="font-black text-black text-[15px]">{item.products?.name}</p>
-                      <div className="flex flex-wrap items-center gap-1 mt-1">
-                        <span className="text-[11px] text-gray-400 font-bold uppercase">{item.quantity} x ${item.unit_price?.toFixed(2)}</span>
-                        {item.product_variants?.model_name && (
-                          <Badge className="bg-amber-50 text-amber-600 border-amber-100 font-bold text-[9px] h-4 py-0 px-1 ml-0.5">
-                            {item.product_variants.model_name}
-                          </Badge>
-                        )}
-                        {item.serial_number && (
-                          <Badge className="bg-blue-50 text-blue-600 border-blue-100 font-bold text-[9px] h-4 py-0 px-1 ml-0.5">
-                            S/N: {item.serial_number}
-                          </Badge>
-                        )}
+                {selectedOrder?.order_items?.map((item: any, idx: number) => {
+                  const ri = refundItems.find(r => r.id === item.id);
+                  const isFullyRefunded = item.quantity === (item.refunded_quantity || 0);
+                  return (
+                    <div key={idx} className="flex justify-between items-start">
+                      <div>
+                        <p className={cn("font-black text-[15px]", isFullyRefunded ? "text-gray-400 line-through" : "text-black")}>{item.products?.name}</p>
+                        <div className="flex flex-wrap items-center gap-1 mt-1">
+                          <span className="text-[11px] text-gray-400 font-bold uppercase">{item.quantity} x ₹{item.unit_price?.toFixed(2)}</span>
+                          {item.product_variants?.model_name && (
+                            <Badge className="bg-amber-50 text-amber-600 border-amber-100 font-bold text-[9px] h-4 py-0 px-1 ml-0.5">
+                              {item.product_variants.model_name}
+                            </Badge>
+                          )}
+                          {item.refunded_quantity > 0 && !isRefunding && (
+                            <Badge className="bg-rose-50 text-rose-600 border-rose-100 font-bold text-[9px] h-4 py-0 px-1 ml-0.5">
+                              Refunded: {item.refunded_quantity}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
+                      
+                      {isRefunding ? (
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" size="icon" className="h-8 w-8 rounded-lg"
+                            disabled={!ri || ri.quantity <= 0}
+                            onClick={() => setRefundItems(prev => prev.map(p => p.id === item.id ? {...p, quantity: p.quantity - 1} : p))}
+                          >-</Button>
+                          <span className="font-bold w-4 text-center">{ri?.quantity || 0}</span>
+                          <Button 
+                            variant="outline" size="icon" className="h-8 w-8 rounded-lg"
+                            disabled={!ri || ri.quantity >= ri.max}
+                            onClick={() => setRefundItems(prev => prev.map(p => p.id === item.id ? {...p, quantity: p.quantity + 1} : p))}
+                          >+</Button>
+                        </div>
+                      ) : (
+                        <span className="font-black text-black">₹{item.total_price.toFixed(2)}</span>
+                      )}
                     </div>
-                    <span className="font-black text-black">₹{item.total_price.toFixed(2)}</span>
-                  </div>
-                ))}
+                  );
+                })}
              </div>
-             <div className="pt-6 border-t border-gray-100 flex justify-between items-center">
-                <span className="text-lg font-black uppercase text-gray-400 tracking-widest">Total Paid</span>
-                <span className="text-3xl font-black text-black">₹{selectedOrder?.total_amount.toFixed(2)}</span>
-             </div>
-             <div className="grid grid-cols-2 gap-3 pt-4">
-                <Button variant="outline" className="h-14 rounded-2xl font-black" onClick={() => setSelectedOrder(null)}>Close</Button>
-                <Button className="h-14 rounded-2xl bg-black text-white font-black" onClick={() => handleReprint(selectedOrder)}>
-                   <Printer className="mr-2 h-5 w-5" /> Print
-                </Button>
-             </div>
+             
+             {!isRefunding ? (
+               <>
+                 <div className="pt-6 border-t border-gray-100 flex justify-between items-center">
+                    <span className="text-lg font-black uppercase text-gray-400 tracking-widest">Total Paid</span>
+                    <span className="text-3xl font-black text-black">₹{selectedOrder?.total_amount.toFixed(2)}</span>
+                 </div>
+                 <div className="grid grid-cols-2 gap-3 pt-4">
+                    <Button variant="outline" className="h-14 rounded-2xl font-black" onClick={() => setSelectedOrder(null)}>Close</Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="h-14 flex-1 rounded-2xl text-rose-600 border-rose-200 hover:bg-rose-50" disabled={selectedOrder?.payment_status === 'refunded'} onClick={handleInitiateRefund}>
+                         Refund
+                      </Button>
+                      <Button className="h-14 flex-1 rounded-2xl bg-black text-white font-black" onClick={() => handleReprint(selectedOrder)}>
+                         <Printer className="h-5 w-5" />
+                      </Button>
+                    </div>
+                 </div>
+               </>
+             ) : (
+               <>
+                 <div className="space-y-2 pt-4">
+                   <Label className="text-[10px] font-black uppercase text-gray-400">Refund Reason (Optional)</Label>
+                   <Input 
+                     placeholder="e.g. Defective item, changed mind..."
+                     className="bg-gray-50 border-transparent rounded-xl"
+                     value={refundReason}
+                     onChange={e => setRefundReason(e.target.value)}
+                   />
+                 </div>
+                 <div className="pt-6 border-t border-gray-100 flex justify-between items-center">
+                    <span className="text-lg font-black uppercase text-gray-400 tracking-widest">Refund Amt</span>
+                    <span className="text-3xl font-black text-rose-500">
+                      ₹{refundItems.reduce((acc, curr) => {
+                        const oi = selectedOrder?.order_items.find((i: any) => i.id === curr.id);
+                        return acc + (oi ? oi.unit_price * curr.quantity : 0);
+                      }, 0).toFixed(2)}
+                      <span className="text-sm text-gray-400 block text-right font-medium">+ Tax</span>
+                    </span>
+                 </div>
+                 <div className="grid grid-cols-2 gap-3 pt-4">
+                    <Button variant="outline" className="h-14 rounded-2xl font-black" onClick={() => setIsRefunding(false)}>Cancel</Button>
+                    <Button 
+                      className="h-14 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-black" 
+                      onClick={handleSubmitRefund}
+                      disabled={isSubmittingRefund || refundItems.every(i => i.quantity === 0)}
+                    >
+                       Confirm Refund
+                    </Button>
+                 </div>
+               </>
+             )}
           </div>
         </DialogContent>
       </Dialog>

@@ -337,7 +337,7 @@ export function CheckoutDialog({
         </head>
         <body>
           <div id="printable-receipt">
-            ₹{printContent.innerHTML}
+            ${printContent.innerHTML}
           </div>
           <script>
             window.onload = () => {
@@ -402,7 +402,7 @@ export function CheckoutDialog({
       doc.setTextColor(220, 50, 50);
       doc.text('Discount:', 130, y);
       const discStr = receiptData.discountType === 'percentage' ? `${receiptData.discount}%` : `₹${receiptData.discount.toFixed(2)}`;
-      doc.text(`-₹{discStr}`, 190, y, { align: 'right' });
+      doc.text(`-₹${discStr}`, 190, y, { align: 'right' });
       doc.setTextColor(0, 0, 0);
     }
     y += 10;
@@ -426,7 +426,7 @@ export function CheckoutDialog({
     doc.setFont('helvetica', 'italic');
     doc.text('Thank you for shopping with OrbitPOS!', 105, y + 30, { align: 'center' });
     
-    doc.save(`orbitpos-receipt-₹{receiptData.orderId.slice(0, 8)}.pdf`);
+    doc.save(`orbitpos-receipt-${receiptData.orderId.slice(0, 8)}.pdf`);
   };
 
   const closeAndClear = () => {

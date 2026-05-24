@@ -211,7 +211,7 @@ export function EditProductDialog({
         .join('-')
         .toUpperCase()
         .replace(/\s+/g, '') || formData.name.toUpperCase().replace(/\s+/g, '-').slice(0, 20);
-      const autoSku = product.sku || `${skuBase}-₹{Date.now().toString(36).toUpperCase()}`;
+      const autoSku = product.sku || `${skuBase}-${Date.now().toString(36).toUpperCase()}`;
 
       const { error: pError } = await supabase
         .from('products')

@@ -14,7 +14,7 @@ export function downloadCSV(data: any[], filename: string) {
       // Escape quotes and wrap in quotes if there's a comma
       const strVal = String(val ?? '');
       if (strVal.includes(',') || strVal.includes('"')) {
-        return `">₹{strVal.replace(/"/g, '""')}"`;
+        return `">₹${strVal.replace(/"/g, '""')}"`;
       }
       return strVal;
     });
