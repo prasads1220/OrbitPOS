@@ -167,6 +167,7 @@ export default function OrdersPage() {
             * {
               box-sizing: border-box;
               color: black !important;
+              font-family: monospace !important;
             }
             .space-y-4 > * + * { margin-top: 1rem; }
             .space-y-2 > * + * { margin-top: 0.5rem; }

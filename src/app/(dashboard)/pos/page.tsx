@@ -245,7 +245,7 @@ export default function POSPage() {
             @page { size: 80mm auto; margin: 0; }
             body { margin: 0; padding: 0; font-family: monospace; background: white; }
             #printable-receipt { display: block !important; width: 80mm; padding: 5mm; margin: 0; background: white; }
-            * { box-sizing: border-box; color: black !important; }
+            * { box-sizing: border-box; color: black !important; font-family: monospace !important; }
             .space-y-4 > * + * { margin-top: 1rem; }
             .space-y-2 > * + * { margin-top: 0.5rem; }
             .space-y-1 > * + * { margin-top: 0.25rem; }
@@ -286,7 +286,7 @@ export default function POSPage() {
           </style>
         </head>
         <body>
-          <div id="printable-receipt">\${printContent.innerHTML}</div>
+          <div id="printable-receipt">${printContent.innerHTML}</div>
           <script>
             window.onload = () => {
               window.print();
@@ -331,6 +331,13 @@ export default function POSPage() {
         subtotal: subtotal,
         tax: tax,
         total: subtotal + tax,
+        discount: order.discount_amount || 0,
+        customerName: customer?.full_name || null,
+        customerPhone: customer?.phone || null,
+        customerEmail: customer?.email || null,
+        pointsEarned: order.points_earned || 0,
+        pointsRedeemed: order.points_redeemed || 0,
+        pointsBalance: customer?.loyalty_points || 0,
         cashierName: order.cashier?.full_name || 'System',
         type: 'refund'
       });
@@ -351,6 +358,13 @@ export default function POSPage() {
         subtotal: subtotal,
         tax: order.tax_amount || 0,
         total: order.total_amount,
+        discount: order.discount_amount || 0,
+        customerName: customer?.full_name || null,
+        customerPhone: customer?.phone || null,
+        customerEmail: customer?.email || null,
+        pointsEarned: order.points_earned || 0,
+        pointsRedeemed: order.points_redeemed || 0,
+        pointsBalance: customer?.loyalty_points || 0,
         cashierName: order.cashier?.full_name || 'System',
         type: 'sale'
       });
