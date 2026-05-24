@@ -231,25 +231,55 @@ export default function OrdersPage() {
   }, [receiptData]);
 
   const handleReprint = (order: any) => {
-    const subtotal = order.order_items.reduce((sum: number, item: any) => sum + (item.unit_price * item.quantity), 0);
-    setReceiptData({
-      orderId: order.id,
-      date: format(parseISO(order.created_at), 'MMM d, yyyy h:mm a'),
-      method: order.payment_method,
-      items: order.order_items.map((item: any) => ({
-        name: item.products?.name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        price: item.unit_price,
-        variant_name: item.product_variants?.model_name || null,
-        serial_number: item.serial_number || null,
-      })),
-      subtotal: subtotal,
-      tax: order.tax_amount || 0,
-      total: order.total_amount,
-      cashierName: order.cashier?.full_name || 'System',
-      type: 'sale'
-    });
+    const isRefunded = order.payment_status === 'refunded' || order.payment_status === 'partially_refunded';
+
+    if (isRefunded) {
+      const refundedItems = order.order_items.filter((item: any) => (item.refunded_quantity || 0) > 0);
+      const subtotal = refundedItems.reduce((sum: number, item: any) => sum + (item.unit_price * item.refunded_quantity), 0);
+      
+      const preTaxTotal = order.total_amount - (order.tax_amount || 0);
+      const taxRate = preTaxTotal > 0 ? (order.tax_amount || 0) / preTaxTotal : 0;
+      const tax = subtotal * taxRate;
+
+      setReceiptData({
+        orderId: order.id,
+        date: format(parseISO(order.created_at), 'MMM d, yyyy h:mm a'),
+        method: order.payment_method,
+        items: refundedItems.map((item: any) => ({
+          name: item.products?.name,
+          quantity: item.refunded_quantity,
+          unit_price: item.unit_price,
+          price: item.unit_price,
+          variant_name: item.product_variants?.model_name || null,
+          serial_number: item.serial_number || null,
+        })),
+        subtotal: subtotal,
+        tax: tax,
+        total: subtotal + tax,
+        cashierName: order.cashier?.full_name || 'System',
+        type: 'refund'
+      });
+    } else {
+      const subtotal = order.order_items.reduce((sum: number, item: any) => sum + (item.unit_price * item.quantity), 0);
+      setReceiptData({
+        orderId: order.id,
+        date: format(parseISO(order.created_at), 'MMM d, yyyy h:mm a'),
+        method: order.payment_method,
+        items: order.order_items.map((item: any) => ({
+          name: item.products?.name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          price: item.unit_price,
+          variant_name: item.product_variants?.model_name || null,
+          serial_number: item.serial_number || null,
+        })),
+        subtotal: subtotal,
+        tax: order.tax_amount || 0,
+        total: order.total_amount,
+        cashierName: order.cashier?.full_name || 'System',
+        type: 'sale'
+      });
+    }
   };
 
   const handleInitiateRefund = () => {
