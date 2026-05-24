@@ -357,7 +357,7 @@ export default function ReportsPage() {
                         dataKey="value"
                       >
                         {topProducts.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell key={`cell-₹{index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
                       <Tooltip 

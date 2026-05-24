@@ -328,7 +328,7 @@ export default function EmployeesPage() {
                             </>
                           ) : (
                             <>
-                              <span className="font-bold text-black">${emp.hourly_rate?.toFixed(2) || '0.00'}/hr</span>
+                              <span className="font-bold text-black">₹{emp.hourly_rate?.toFixed(2) || '0.00'}/hr</span>
                               <Button 
                                 size="sm" 
                                 variant="ghost" 
@@ -341,7 +341,7 @@ export default function EmployeesPage() {
                           )}
                         </div>
                       ) : (
-                        <span className="font-bold text-black">${emp.hourly_rate?.toFixed(2) || '0.00'}/hr</span>
+                        <span className="font-bold text-black">₹{emp.hourly_rate?.toFixed(2) || '0.00'}/hr</span>
                       )}
                     </TableCell>
                     <TableCell className="text-gray-400 font-medium">

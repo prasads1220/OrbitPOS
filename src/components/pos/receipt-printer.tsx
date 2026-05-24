@@ -105,7 +105,7 @@ export function ReceiptPrinter({ receiptData }: ReceiptPrinterProps) {
           {receiptData.discount > 0 && (
             <p className="flex justify-between text-rose-600">
               <span>DISCOUNT:</span> 
-              <span>-${receiptData.discount.toFixed(2)}</span>
+              <span>-₹{receiptData.discount.toFixed(2)}</span>
             </p>
           )}
           <p className="flex justify-between text-lg font-bold border-t pt-2">
@@ -116,8 +116,8 @@ export function ReceiptPrinter({ receiptData }: ReceiptPrinterProps) {
 
         {receiptData.method === 'cash' && receiptData.type === 'sale' && (
           <div className="space-y-1 border-t pt-2 opacity-80">
-            <p className="flex justify-between"><span>CASH TENDERED:</span> <span>${(parseFloat(receiptData.cashTendered || '0') || receiptData.total).toFixed(2)}</span></p>
-            <p className="flex justify-between"><span>CHANGE DUE:</span> <span>${(receiptData.changeDue || 0).toFixed(2)}</span></p>
+            <p className="flex justify-between"><span>CASH TENDERED:</span> <span>₹{(parseFloat(receiptData.cashTendered || '0') || receiptData.total).toFixed(2)}</span></p>
+            <p className="flex justify-between"><span>CHANGE DUE:</span> <span>₹{(receiptData.changeDue || 0).toFixed(2)}</span></p>
           </div>
         )}
 

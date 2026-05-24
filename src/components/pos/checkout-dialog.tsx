@@ -364,7 +364,7 @@ export function CheckoutDialog({
         </head>
         <body>
           <div id="printable-receipt">
-            ${printContent.innerHTML}
+            ₹{printContent.innerHTML}
           </div>
           <script>
             window.onload = () => {
@@ -429,7 +429,7 @@ export function CheckoutDialog({
       doc.setTextColor(220, 50, 50);
       doc.text('Discount:', 130, y);
       const discStr = receiptData.discountType === 'percentage' ? `${receiptData.discount}%` : `₹${receiptData.discount.toFixed(2)}`;
-      doc.text(`-${discStr}`, 190, y, { align: 'right' });
+      doc.text(`-₹{discStr}`, 190, y, { align: 'right' });
       doc.setTextColor(0, 0, 0);
     }
     y += 10;
@@ -453,7 +453,7 @@ export function CheckoutDialog({
     doc.setFont('helvetica', 'italic');
     doc.text('Thank you for shopping with OrbitPOS!', 105, y + 30, { align: 'center' });
     
-    doc.save(`orbitpos-receipt-${receiptData.orderId.slice(0, 8)}.pdf`);
+    doc.save(`orbitpos-receipt-₹{receiptData.orderId.slice(0, 8)}.pdf`);
   };
 
   const closeAndClear = () => {
@@ -507,7 +507,7 @@ export function CheckoutDialog({
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm text-center">
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Total Amount Due</p>
-                <div className="text-5xl font-black text-[#0071e3] tracking-tighter">${total.toFixed(2)}</div>
+                <div className="text-5xl font-black text-[#0071e3] tracking-tighter">₹{total.toFixed(2)}</div>
               </div>
 
               <div className="space-y-4">
@@ -559,7 +559,7 @@ export function CheckoutDialog({
             <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
               <div className="bg-[#f5f5f7] p-6 rounded-2xl flex justify-between items-center">
                 <span className="font-bold text-gray-500">Amount Due</span>
-                <span className="text-2xl font-black text-black">${total.toFixed(2)}</span>
+                <span className="text-2xl font-black text-black">₹{total.toFixed(2)}</span>
               </div>
 
               <div className="space-y-4">
@@ -585,7 +585,7 @@ export function CheckoutDialog({
                     className="h-14 rounded-xl border-gray-100 font-bold text-gray-600 hover:bg-[#0071e3] hover:text-white hover:border-[#0071e3] transition-all"
                     onClick={() => handleQuickCash(amt)}
                   >
-                    ${amt === total ? 'Exact' : amt}
+                    ₹{amt === total ? 'Exact' : amt}
                   </Button>
                 ))}
               </div>
@@ -595,7 +595,7 @@ export function CheckoutDialog({
                 changeDue > 0 ? "bg-emerald-50 border-2 border-emerald-100" : "bg-gray-50 border-2 border-gray-100 opacity-50"
               )}>
                 <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Change Due</p>
-                <div className="text-4xl font-black text-emerald-500">${changeDue.toFixed(2)}</div>
+                <div className="text-4xl font-black text-emerald-500">₹{changeDue.toFixed(2)}</div>
               </div>
 
               <div className="flex gap-4">

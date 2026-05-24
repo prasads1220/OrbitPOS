@@ -446,7 +446,7 @@ export default function DashboardPage() {
                     const parts = v.name.split(' - ');
                     const vendor = parts[0] || 'Generic';
                     const product = parts[1] || 'Unnamed';
-                    return `"${vendor}","${product}",${v.value},${v.revenue.toFixed(2)}`;
+                    return `">₹{vendor}",">₹{product}",${v.value},${v.revenue.toFixed(2)}`;
                   });
                   const blob = new Blob([`Vendor,Product Name,Units Sold,Total Revenue (₹)\n${csvRows.join('\n')}`], { type: 'text/csv' });
                   const url = window.URL.createObjectURL(blob);
@@ -512,7 +512,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="text-right shrink-0">
                           <p className="font-black text-black text-lg tabular-nums">{item.value} <span className="text-[11px] text-gray-400 font-bold">units</span></p>
-                          <p className="text-[12px] text-emerald-500 font-bold">${item.revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                          <p className="text-[12px] text-emerald-500 font-bold">₹{item.revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                       </div>
                       {/* Animated Progress Bar */}

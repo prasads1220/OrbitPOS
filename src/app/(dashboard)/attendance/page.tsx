@@ -230,7 +230,7 @@ export default function AttendancePage() {
           <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
              <p className="text-[13px] font-bold text-gray-400 uppercase tracking-widest mb-1">Hours This Month</p>
              <h3 className="text-4xl font-black text-black tracking-tighter">{stats.monthTotal.toFixed(1)} hrs</h3>
-             <p className="text-[12px] text-gray-400 mt-2 font-medium">Estimated pay: <span className="text-black font-bold">${(stats.monthTotal * (profile?.hourly_rate || 0)).toLocaleString()}</span></p>
+             <p className="text-[12px] text-gray-400 mt-2 font-medium">Estimated pay: <span className="text-black font-bold">₹{(stats.monthTotal * (profile?.hourly_rate || 0)).toLocaleString()}</span></p>
           </div>
         </div>
       </div>

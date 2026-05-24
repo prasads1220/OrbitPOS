@@ -294,7 +294,7 @@ function SuperAdminContent() {
   };
 
   const handleDeleteStore = async (storeId: string, storeName: string) => {
-    if (!confirm(`Are you sure you want to PERMANENTLY delete "${storeName}"? This will wipe all products, orders, and logins for this company.`)) return;
+    if (!confirm(`Are you sure you want to PERMANENTLY delete ">₹{storeName}"? This will wipe all products, orders, and logins for this company.`)) return;
 
     setLoading(true);
     const res = await deleteStore(storeId);

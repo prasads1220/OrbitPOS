@@ -199,7 +199,7 @@ export default function OrdersPage() {
         </head>
         <body>
           <div id="printable-receipt">
-            ${printContent.innerHTML}
+            ₹{printContent.innerHTML}
           </div>
           <script>
             window.onload = () => {
@@ -357,7 +357,7 @@ export default function OrdersPage() {
                           </TableCell>
                           <TableCell className="text-right">
                              <div className="flex flex-col items-end">
-                                <span className="font-black text-black text-lg">${order.total_amount.toFixed(2)}</span>
+                                <span className="font-black text-black text-lg">₹{order.total_amount.toFixed(2)}</span>
                                 <Badge className={cn("border-none font-black text-[9px] h-4", order.payment_status === 'completed' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600")}>
                                    {order.payment_status.toUpperCase()}
                                 </Badge>
@@ -422,13 +422,13 @@ export default function OrdersPage() {
                         )}
                       </div>
                     </div>
-                    <span className="font-black text-black">${item.total_price.toFixed(2)}</span>
+                    <span className="font-black text-black">₹{item.total_price.toFixed(2)}</span>
                   </div>
                 ))}
              </div>
              <div className="pt-6 border-t border-gray-100 flex justify-between items-center">
                 <span className="text-lg font-black uppercase text-gray-400 tracking-widest">Total Paid</span>
-                <span className="text-3xl font-black text-black">${selectedOrder?.total_amount.toFixed(2)}</span>
+                <span className="text-3xl font-black text-black">₹{selectedOrder?.total_amount.toFixed(2)}</span>
              </div>
              <div className="grid grid-cols-2 gap-3 pt-4">
                 <Button variant="outline" className="h-14 rounded-2xl font-black" onClick={() => setSelectedOrder(null)}>Close</Button>

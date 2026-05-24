@@ -236,7 +236,7 @@ export default function StockTransferPage() {
                       <p className="text-[11px] text-gray-400">{p.sku}</p>
                     </div>
                   </TableCell>
-                  <TableCell className="font-semibold text-black">${p.price.toFixed(2)}</TableCell>
+                  <TableCell className="font-semibold text-black">₹{p.price.toFixed(2)}</TableCell>
                   <TableCell className="font-bold">{p.stock_quantity}</TableCell>
                   <TableCell className="pr-6 text-right">
                     <Button 
@@ -292,7 +292,7 @@ export default function StockTransferPage() {
               <div className="flex items-center justify-between">
                 <div className="min-w-0 pr-4">
                   <p className="text-[13px] font-bold text-black truncate">{item.name}</p>
-                  <p className="text-[11px] text-gray-400 font-medium">Price: ${item.price.toFixed(2)} | Avail: {item.stock_quantity}</p>
+                  <p className="text-[11px] text-gray-400 font-medium">Price: ₹{item.price.toFixed(2)} | Avail: {item.stock_quantity}</p>
                 </div>
                 <Button variant="ghost" size="icon" className="text-rose-500 hover:bg-rose-50 rounded-xl h-8 w-8 shrink-0" onClick={() => updateQuantity(item.id, 0)}>
                   <Trash2 className="h-4 w-4" />
@@ -304,7 +304,7 @@ export default function StockTransferPage() {
                   <span className="px-3 text-sm font-black min-w-8 text-center">{item.quantity}</span>
                   <button className="p-1 hover:bg-gray-50 rounded-lg" onClick={() => updateQuantity(item.id, item.quantity + 1)}><Plus className="h-3 w-3" /></button>
                 </div>
-                <span className="font-bold text-black text-sm">${(item.price * item.quantity).toFixed(2)}</span>
+                <span className="font-bold text-black text-sm">₹{(item.price * item.quantity).toFixed(2)}</span>
               </div>
             </div>
           ))}
@@ -318,7 +318,7 @@ export default function StockTransferPage() {
             </div>
             <div className="flex justify-between items-end">
               <span className="text-[13px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Value</span>
-              <span className="text-3xl font-black text-[#0071e3]">${totalPrice.toFixed(2)}</span>
+              <span className="text-3xl font-black text-[#0071e3]">₹{totalPrice.toFixed(2)}</span>
             </div>
           </div>
         )}
@@ -397,8 +397,8 @@ export default function StockTransferPage() {
                           <p className="text-[11px] text-gray-400 font-mono font-medium">{item.sku}</p>
                         </TableCell>
                         <TableCell className="text-center font-black text-black">{item.quantity}</TableCell>
-                        <TableCell className="text-right font-semibold text-gray-600">${item.price.toFixed(2)}</TableCell>
-                        <TableCell className="text-right font-black text-black pr-4">${(item.price * item.quantity).toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-semibold text-gray-600">₹{item.price.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-black text-black pr-4">₹{(item.price * item.quantity).toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -413,7 +413,7 @@ export default function StockTransferPage() {
               </div>
               <div className="text-right">
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Grand Total Value</p>
-                <p className="text-3xl font-black text-[#0071e3] print:text-black">${completedTransfer?.totalPrice.toFixed(2)}</p>
+                <p className="text-3xl font-black text-[#0071e3] print:text-black">₹{completedTransfer?.totalPrice.toFixed(2)}</p>
               </div>
             </div>
 

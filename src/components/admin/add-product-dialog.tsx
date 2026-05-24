@@ -216,7 +216,7 @@ export function AddProductDialog({ onProductAdded, storeId }: { onProductAdded?:
         .join('-')
         .toUpperCase()
         .replace(/\s+/g, '') || productName.toUpperCase().replace(/\s+/g, '-').slice(0, 20);
-      const autoSku = `${skuBase}-${Date.now().toString(36).toUpperCase()}`;
+      const autoSku = `${skuBase}-₹{Date.now().toString(36).toUpperCase()}`;
 
       // 3. Insert product
       const { error: pError } = await supabase

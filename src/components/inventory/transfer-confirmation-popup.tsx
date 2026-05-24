@@ -147,8 +147,8 @@ export function TransferConfirmationPopup() {
             if (insertError) {
               // Double-safety net: If it violates products_sku_key constraint, append store ID suffix to SKU!
               if (insertError.message.includes('products_sku_key') || insertError.code === '23505') {
-                const retrySku = `${sourceProduct.sku}-${profile.store_id.slice(0, 4)}`;
-                const retryBarcode = sourceProduct.barcode ? `${sourceProduct.barcode}-${profile.store_id.slice(0, 4)}` : null;
+                const retrySku = `${sourceProduct.sku}-₹{profile.store_id.slice(0, 4)}`;
+                const retryBarcode = sourceProduct.barcode ? `${sourceProduct.barcode}-₹{profile.store_id.slice(0, 4)}` : null;
 
                 const { error: retryError } = await supabase
                   .from('products')
@@ -160,7 +160,7 @@ export function TransferConfirmationPopup() {
 
                 if (retryError) throw retryError;
                 
-                toast.warning(`SKU Conflict Resolved: Product was added with a store-specific SKU: "${retrySku}". Please run the recommended SQL update in your Supabase Editor for a clean permanent fix.`);
+                toast.warning(`SKU Conflict Resolved: Product was added with a store-specific SKU: ">₹{retrySku}". Please run the recommended SQL update in your Supabase Editor for a clean permanent fix.`);
               } else {
                 throw insertError;
               }
