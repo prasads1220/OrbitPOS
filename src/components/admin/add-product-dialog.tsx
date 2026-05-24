@@ -385,7 +385,7 @@ export function AddProductDialog({ onProductAdded, storeId }: { onProductAdded?:
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="price" className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Retail Price ($)</Label>
+              <Label htmlFor="price" className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Retail Price (₹)</Label>
               <Input 
                 id="price" 
                 type="number" 

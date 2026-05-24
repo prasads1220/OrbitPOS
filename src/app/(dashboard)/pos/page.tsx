@@ -338,7 +338,7 @@ export default function POSPage() {
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex flex-col">
                         <p className="text-xl font-black text-black">
-                          {product.has_variants ? 'Varies' : `$${product.price.toFixed(2)}`}
+                          {product.has_variants ? 'Varies' : `₹${product.price.toFixed(2)}`}
                         </p>
                         <p className={cn(
                           "text-[10px] font-bold uppercase tracking-wider",
@@ -479,7 +479,7 @@ export default function POSPage() {
                   </div>
                 </div>
                 <span className="text-[12px] font-black text-rose-500">
-                  -{discountType === 'percentage' ? `${discount}%` : `$${discount.toFixed(2)}`}
+                  -{discountType === 'percentage' ? `${discount}%` : `₹${discount.toFixed(2)}`}
                 </span>
               </div>
               <div className="flex gap-1.5">

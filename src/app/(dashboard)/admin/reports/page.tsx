@@ -235,7 +235,7 @@ export default function ReportsPage() {
 
     const data = Object.keys(grouped).sort((a, b) => b.localeCompare(a)).map(key => ({
       Period: key,
-      Revenue: `$${grouped[key].toFixed(2)}`
+      Revenue: `₹${grouped[key].toFixed(2)}`
     }));
 
     downloadCSV(data, `${period}_sales_report.csv`);
@@ -311,10 +311,10 @@ export default function ReportsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <ReportCard title="Net Revenue" value={`$${summary.totalRevenue.toLocaleString()}`} icon={DollarSign} color="blue" />
-        <ReportCard title="Total Loss" value={`$${summary.totalLoss.toLocaleString()}`} icon={TrendingUp} color="rose" />
+        <ReportCard title="Net Revenue" value={`₹${summary.totalRevenue.toLocaleString()}`} icon={DollarSign} color="blue" />
+        <ReportCard title="Total Loss" value={`₹${summary.totalLoss.toLocaleString()}`} icon={TrendingUp} color="rose" />
         <ReportCard title="Orders" value={summary.totalOrders.toString()} icon={ShoppingBag} color="indigo" />
-        <ReportCard title="Avg Order" value={`$${summary.avgOrderValue.toFixed(2)}`} icon={DollarSign} color="emerald" />
+        <ReportCard title="Avg Order" value={`₹${summary.avgOrderValue.toFixed(2)}`} icon={DollarSign} color="emerald" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -327,7 +327,7 @@ export default function ReportsPage() {
               <BarChart data={salesByDay}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#86868b', fontSize: 10}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#86868b', fontSize: 10}} tickFormatter={(v) => `$${v}`} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#86868b', fontSize: 10}} tickFormatter={(v) => `₹${v}`} />
                 <Tooltip 
                   contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.08)'}}
                   cursor={{fill: '#f5f5f7', radius: 8}}

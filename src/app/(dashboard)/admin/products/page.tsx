@@ -320,7 +320,7 @@ export default function ProductsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-black text-black text-lg">
-                    {product.has_variants ? "Varies" : `$${product.price.toFixed(2)}`}
+                    {product.has_variants ? "Varies" : `₹${product.price.toFixed(2)}`}
                   </TableCell>
                   <TableCell className="text-right">
                     <span className={cn(

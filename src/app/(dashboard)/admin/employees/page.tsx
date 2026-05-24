@@ -298,7 +298,7 @@ export default function EmployeesPage() {
                           {editingRates[emp.id] !== undefined ? (
                             <>
                               <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
                                 <Input 
                                   type="number"
                                   min="0"

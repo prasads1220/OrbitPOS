@@ -411,8 +411,8 @@ export function CheckoutDialog({
     receiptData.items.forEach(item => {
       doc.text(item.name.substring(0, 30), 20, y);
       doc.text(item.quantity.toString(), 122, y);
-      doc.text(`$${item.price.toFixed(2)}`, 150, y);
-      doc.text(`$${(item.quantity * item.price).toFixed(2)}`, 190, y, { align: 'right' });
+      doc.text(`₹${item.price.toFixed(2)}`, 150, y);
+      doc.text(`₹${(item.quantity * item.price).toFixed(2)}`, 190, y, { align: 'right' });
       y += 10;
     });
 
@@ -420,15 +420,15 @@ export function CheckoutDialog({
     doc.line(130, y, 190, y);
     y += 10;
     doc.text('Subtotal:', 130, y);
-    doc.text(`$${receiptData.subtotal.toFixed(2)}`, 190, y, { align: 'right' });
+    doc.text(`₹${receiptData.subtotal.toFixed(2)}`, 190, y, { align: 'right' });
     y += 7;
     doc.text('Tax (8%):', 130, y);
-    doc.text(`$${receiptData.tax.toFixed(2)}`, 190, y, { align: 'right' });
+    doc.text(`₹${receiptData.tax.toFixed(2)}`, 190, y, { align: 'right' });
     if (receiptData.discount > 0) {
       y += 7;
       doc.setTextColor(220, 50, 50);
       doc.text('Discount:', 130, y);
-      const discStr = receiptData.discountType === 'percentage' ? `${receiptData.discount}%` : `$${receiptData.discount.toFixed(2)}`;
+      const discStr = receiptData.discountType === 'percentage' ? `${receiptData.discount}%` : `₹${receiptData.discount.toFixed(2)}`;
       doc.text(`-${discStr}`, 190, y, { align: 'right' });
       doc.setTextColor(0, 0, 0);
     }
@@ -436,17 +436,17 @@ export function CheckoutDialog({
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text('TOTAL:', 130, y);
-    doc.text(`$${receiptData.total.toFixed(2)}`, 190, y, { align: 'right' });
+    doc.text(`₹${receiptData.total.toFixed(2)}`, 190, y, { align: 'right' });
 
     if (receiptData.method === 'cash') {
       y += 15;
       doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
       doc.text('Amount Tendered:', 130, y);
-      doc.text(`$${(parseFloat(receiptData.cashTendered || '0') || receiptData.total).toFixed(2)}`, 190, y, { align: 'right' });
+      doc.text(`₹${(parseFloat(receiptData.cashTendered || '0') || receiptData.total).toFixed(2)}`, 190, y, { align: 'right' });
       y += 7;
       doc.text('Change:', 130, y);
-      doc.text(`$${(receiptData.changeDue || 0).toFixed(2)}`, 190, y, { align: 'right' });
+      doc.text(`₹${(receiptData.changeDue || 0).toFixed(2)}`, 190, y, { align: 'right' });
     }
     
     doc.setFontSize(10);
@@ -565,7 +565,7 @@ export function CheckoutDialog({
               <div className="space-y-4">
                 <Label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1">Amount Tendered</Label>
                 <div className="relative">
-                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-gray-300">$</span>
+                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-gray-300">₹</span>
                   <Input 
                     type="number"
                     placeholder="0.00"

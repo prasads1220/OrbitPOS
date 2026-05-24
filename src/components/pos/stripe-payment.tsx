@@ -103,7 +103,7 @@ function CheckoutForm({ amount, onReady, onCancel }: { amount: number, onReady: 
           disabled={loading || !stripe} 
           className="flex-[2] h-14 bg-[#0071e3] hover:bg-[#0077ed] text-white rounded-2xl font-bold shadow-xl shadow-blue-500/20"
         >
-          {loading ? <RefreshCw className="animate-spin h-5 w-5" /> : `Pay $${amount.toFixed(2)}`}
+          {loading ? <RefreshCw className="animate-spin h-5 w-5" /> : `Pay ₹${amount.toFixed(2)}`}
         </Button>
       </div>
     </form>

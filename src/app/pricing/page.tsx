@@ -132,7 +132,7 @@ function PricingCard({ tier, price, description, features, highlighted, buttonTe
 
       <div className="mb-8">
         <div className="flex items-baseline gap-1">
-          {price !== "Custom" && <span className="text-2xl font-bold">$</span>}
+          {price !== "Custom" && <span className="text-2xl font-bold">₹</span>}
           <span className="text-5xl font-bold tracking-tight">{price}</span>
           {price !== "Custom" && <span className={`text-sm font-medium ${highlighted ? 'text-gray-400' : 'text-[#86868b]'}`}>/mo</span>}
         </div>

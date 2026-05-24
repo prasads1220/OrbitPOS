@@ -299,7 +299,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard 
           title="Total Revenue" 
-          value={loading ? '...' : `$${stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={loading ? '...' : `₹${stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           subtitle={`Total for ${timeRange} period`}
           icon={DollarSign}
           color="blue"
@@ -313,7 +313,7 @@ export default function DashboardPage() {
         />
         <StatsCard 
           title="Total Refund Loss" 
-          value={loading ? '...' : `$${stats.totalLoss.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={loading ? '...' : `₹${stats.totalLoss.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           subtitle="Customer refund value"
           icon={ArrowDownRight}
           color="rose"
@@ -361,7 +361,7 @@ export default function DashboardPage() {
                   </defs>
                   <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e5e5ea" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#86868b', fontSize: 12, fontWeight: 600}} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#86868b', fontSize: 12, fontWeight: 600}} tickFormatter={(v) => `$${v}`} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#86868b', fontSize: 12, fontWeight: 600}} tickFormatter={(v) => `₹${v}`} />
                   <Tooltip 
                     contentStyle={{
                       borderRadius: '24px', 
@@ -371,7 +371,7 @@ export default function DashboardPage() {
                       backdropFilter: 'blur(20px)',
                       padding: '16px'
                     }}
-                    formatter={(value: any) => [`$${value}`, 'Revenue']}
+                    formatter={(value: any) => [`₹${value}`, 'Revenue']}
                     cursor={{stroke: '#0072ff', strokeWidth: 1.5}}
                   />
                   <Area type="monotone" dataKey="revenue" stroke="url(#lineGrad)" strokeWidth={4} activeDot={{ r: 7, strokeWidth: 0, fill: '#0072ff' }} fillOpacity={1} fill="url(#colorRevenue)" />
@@ -448,7 +448,7 @@ export default function DashboardPage() {
                     const product = parts[1] || 'Unnamed';
                     return `"${vendor}","${product}",${v.value},${v.revenue.toFixed(2)}`;
                   });
-                  const blob = new Blob([`Vendor,Product Name,Units Sold,Total Revenue ($)\n${csvRows.join('\n')}`], { type: 'text/csv' });
+                  const blob = new Blob([`Vendor,Product Name,Units Sold,Total Revenue (₹)\n${csvRows.join('\n')}`], { type: 'text/csv' });
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
