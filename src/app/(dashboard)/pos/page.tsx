@@ -1210,6 +1210,12 @@ export default function POSPage() {
                 <div className="space-y-1.5 text-[11px] font-bold text-gray-500">
                   <p className="flex justify-between"><span>Phone:</span> <span className="text-black font-extrabold">{customer?.phone || 'Not provided'}</span></p>
                   <p className="flex justify-between"><span>Email:</span> <span className="text-black font-extrabold truncate max-w-[170px]">{customer?.email || 'Not provided'}</span></p>
+                  <p className="flex justify-between border-t border-gray-50 pt-2.5 mt-1">
+                    <span>Member Since:</span> 
+                    <span className="text-black font-extrabold">
+                      {customer?.created_at ? new Date(customer.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                    </span>
+                  </p>
                 </div>
               </div>
 

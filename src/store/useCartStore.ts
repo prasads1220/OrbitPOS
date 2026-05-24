@@ -21,6 +21,7 @@ export interface Customer {
   email: string | null;
   phone: string | null;
   loyalty_points: number;
+  created_at?: string;
 }
 
 interface CartState {
