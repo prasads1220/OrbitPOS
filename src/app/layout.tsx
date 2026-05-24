@@ -17,7 +17,7 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "OrbitPOS | Modern Retail & Business POS",
-  description: "A professional, cloud-based Point of Sale system with real-time Stripe payments, inventory management, and financial reporting.",
+  description: "A professional, cloud-based Point of Sale system with inventory management, and financial reporting.",
   openGraph: {
     title: "OrbitPOS | Modern Retail & Business POS",
     description: "Secure, fast, and beautiful cloud-based POS system for modern businesses.",

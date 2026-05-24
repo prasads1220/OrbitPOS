@@ -2,7 +2,6 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
-import { refundStripePayment } from './stripe';
 
 const getSupabaseAdmin = () => {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -123,23 +122,7 @@ export async function refundOrder(orderId: string, itemsToRefund: { id: string, 
       totalRefundAmount += orderItem.unit_price * itemRefund.quantity;
     }
 
-    // 3. Process Stripe Refund if applicable (Include Tax)
-    if (order.payment_method === 'card' && order.stripe_payment_intent_id) {
-      // Calculate tax rate used in original order
-      const preTaxTotal = order.total_amount - (order.tax_amount || 0);
-      const taxRate = preTaxTotal > 0 ? (order.tax_amount || 0) / preTaxTotal : 0;
-      
-      // Calculate total refund including tax
-      const totalRefundWithTax = totalRefundAmount * (1 + taxRate);
-      
-      console.log('Initiating real Stripe refund with Tax:', order.stripe_payment_intent_id, 'Amount:', totalRefundWithTax.toFixed(2));
-      const stripeRes = await refundStripePayment(order.store_id, order.stripe_payment_intent_id, totalRefundWithTax);
-      
-      if (!stripeRes.success) {
-        console.error('CRITICAL: Stripe refund failed:', stripeRes.error);
-        throw new Error(`Stripe Refund Failed: ${stripeRes.error}`);
-      }
-    }
+    // 3. (Removed Stripe Refund Logic)
 
     // 4. Update order status and refunded amount (Internal records)
     const preTaxTotal = order.total_amount - (order.tax_amount || 0);

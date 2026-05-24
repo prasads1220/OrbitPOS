@@ -24,7 +24,7 @@ import { toast } from 'sonner';
 
 import { useActiveStore } from '@/store/useActiveStore';
 
-type SettingsTab = 'profile' | 'payments';
+type SettingsTab = 'profile' | 'store';
 
 export default function SettingsPage() {
   const { profile, fetchProfile } = useAuthStore();
@@ -38,8 +38,6 @@ export default function SettingsPage() {
   });
 
   const [storeSettings, setStoreSettings] = useState({
-    stripe_publishable_key: '',
-    stripe_secret_key: '',
     auto_print_receipt: true,
   });
 
@@ -62,14 +60,12 @@ export default function SettingsPage() {
   const fetchStoreData = async (storeId: string) => {
     const { data, error } = await supabase
       .from('stores')
-      .select('stripe_publishable_key, stripe_secret_key, auto_print_receipt')
+      .select('auto_print_receipt')
       .eq('id', storeId)
       .single();
     
     if (data) {
       setStoreSettings({
-        stripe_publishable_key: data.stripe_publishable_key || '',
-        stripe_secret_key: data.stripe_secret_key || '',
         auto_print_receipt: data.auto_print_receipt ?? true,
       });
     }
@@ -109,8 +105,6 @@ export default function SettingsPage() {
       const { error } = await supabase
         .from('stores')
         .update({
-          stripe_publishable_key: storeSettings.stripe_publishable_key,
-          stripe_secret_key: storeSettings.stripe_secret_key,
           auto_print_receipt: storeSettings.auto_print_receipt,
         })
         .eq('id', storeToUse);
@@ -146,10 +140,10 @@ export default function SettingsPage() {
           />
           {profile?.role === 'admin' && (
             <SettingsNavItem 
-              icon={CreditCard} 
-              label="Payments" 
-              active={activeTab === 'payments'} 
-              onClick={() => setActiveTab('payments')} 
+              icon={SettingsIcon} 
+              label="Store Config" 
+              active={activeTab === 'store'} 
+              onClick={() => setActiveTab('store')} 
             />
           )}
         </div>
@@ -210,16 +204,16 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {activeTab === 'payments' && profile?.role === 'admin' && (
+          {activeTab === 'store' && profile?.role === 'admin' && (
             <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden animate-in slide-in-from-right-4 duration-500">
               <div className="p-10 border-b border-gray-50 bg-[#fbfbfd]">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-[#635bff] rounded-xl flex items-center justify-center text-white">
-                    <CreditCard className="h-6 w-6" />
+                  <div className="w-12 h-12 bg-[#0071e3] rounded-xl flex items-center justify-center text-white">
+                    <Printer className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-black">Stripe Integration</h3>
-                    <p className="text-[13px] text-gray-400 font-medium">Connect your company's Stripe account.</p>
+                    <h3 className="text-xl font-bold text-black">Store Configuration</h3>
+                    <p className="text-[13px] text-gray-400 font-medium">Manage hardware and store-wide settings.</p>
                   </div>
                 </div>
               </div>
@@ -227,35 +221,7 @@ export default function SettingsPage() {
               <div className="p-10 space-y-8">
                 <form onSubmit={handleSavePayments} className="space-y-6">
                   <div className="space-y-6">
-                    <div className="space-y-2">
-                      <Label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1">Publishable Key</Label>
-                      <div className="relative">
-                        <Key className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
-                        <Input 
-                          placeholder="pk_test_..."
-                          className="h-14 pl-14 bg-[#f5f5f7] border-transparent rounded-2xl focus:bg-white focus:ring-2 focus:ring-[#0071e3]/10 font-mono text-[14px]"
-                          value={storeSettings.stripe_publishable_key}
-                          onChange={(e) => setStoreSettings({...storeSettings, stripe_publishable_key: e.target.value})}
-                        />
-                      </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1">Secret Key</Label>
-                      <div className="relative">
-                        <Shield className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
-                        <Input 
-                          type="password"
-                          placeholder="sk_test_..."
-                          className="h-14 pl-14 bg-[#f5f5f7] border-transparent rounded-2xl focus:bg-white focus:ring-2 focus:ring-[#0071e3]/10 font-mono text-[14px]"
-                          value={storeSettings.stripe_secret_key}
-                          onChange={(e) => setStoreSettings({...storeSettings, stripe_secret_key: e.target.value})}
-                        />
-                      </div>
-                      <p className="text-[11px] text-[#86868b] font-medium ml-1">
-                        Your secret key is stored securely and never shared with the frontend.
-                      </p>
-                    </div>
 
                     <div className="pt-6 border-t border-gray-50">
                       <Label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-4 block">POS Settings</Label>

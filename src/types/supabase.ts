@@ -183,7 +183,6 @@ export interface Database {
           discount_amount: number
           payment_method: string | null
           payment_status: string | null
-          stripe_payment_intent_id: string | null
           created_at: string
         }
         Insert: {
@@ -196,7 +195,6 @@ export interface Database {
           discount_amount?: number
           payment_method?: string | null
           payment_status?: string | null
-          stripe_payment_intent_id?: string | null
           created_at?: string
         }
         Update: {
@@ -209,7 +207,6 @@ export interface Database {
           discount_amount?: number
           payment_method?: string | null
           payment_status?: string | null
-          stripe_payment_intent_id?: string | null
           created_at?: string
         }
       }

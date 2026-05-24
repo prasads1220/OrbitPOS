@@ -27,12 +27,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
-import { 
-  createPaymentIntent, 
-  getStorePublishableKey,
-  getPaymentMethodDetails 
-} from '@/app/actions/stripe';
-import StripePayment from './stripe-payment';
 import { ReceiptPrinter } from './receipt-printer';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -87,9 +81,6 @@ export function CheckoutDialog({
   const [cashTendered, setCashTendered] = useState<string>('');
   const [orderId, setOrderId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [clientSecret, setClientSecret] = useState('');
-  const [publishableKey, setPublishableKey] = useState('');
-  const [stripeIntentId, setStripeIntentId] = useState('');
   const [loading, setLoading] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
@@ -109,8 +100,6 @@ export function CheckoutDialog({
         setStep('selection');
         setCashTendered('');
         setError(null);
-        setClientSecret('');
-        setStripeIntentId('');
         setOrderId(null);
         setReceiptData(null);
       }, 300);
@@ -144,7 +133,7 @@ export function CheckoutDialog({
           payment_status: 'completed',
           store_id: storeToUse,
           cashier_id: profile?.id,
-          stripe_payment_intent_id: stripeId || (method === 'card' ? stripeIntentId : null),
+          stripe_payment_intent_id: null,
         })
         .select()
         .single();
@@ -249,24 +238,8 @@ export function CheckoutDialog({
     if (currentMethod === 'cash') {
       setStep('cash-input');
     } else {
-      try {
-        setLoading(true);
-        if (!storeToUse) throw new Error('Store ID missing');
-        
-        const [intentRes, keyRes] = await Promise.all([
-          createPaymentIntent(total, storeToUse, profile?.store_name || 'OrbitPOS Store'),
-          getStorePublishableKey(storeToUse)
-        ]);
-
-        setClientSecret(intentRes.clientSecret || '');
-        setPublishableKey(keyRes);
-        setStep('card-payment');
-      } catch (err: any) {
-        toast.error('Could not initialize card payment: ' + err.message);
-        setStep('selection');
-      } finally {
-        setLoading(false);
-      }
+      // Assuming external physical credit card terminal
+      finalizeOrder();
     }
   };
 
@@ -461,22 +434,6 @@ export function CheckoutDialog({
     onOpenChange(false);
   };
 
-  const handleStripeSuccess = async (intentId: string, last4?: string, brand?: string) => {
-    let finalLast4 = last4;
-    let finalBrand = brand;
-
-    // If details are missing, fetch them from server
-    if (!finalLast4 && profile?.store_id) {
-      const details = await getPaymentMethodDetails(profile.store_id, intentId);
-      if (details) {
-        finalLast4 = details.last4;
-        finalBrand = details.brand;
-      }
-    }
-
-    finalizeOrder(intentId, finalLast4, finalBrand);
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px] p-0 max-h-[90vh] overflow-y-auto rounded-[2.5rem] border-none shadow-2xl bg-white">
@@ -611,16 +568,6 @@ export function CheckoutDialog({
                 </Button>
               </div>
             </div>
-          )}
-
-          {step === 'card-payment' && clientSecret && publishableKey && (
-            <StripePayment 
-              publishableKey={publishableKey}
-              clientSecret={clientSecret} 
-              amount={total} 
-              onSuccess={handleStripeSuccess} 
-              onCancel={() => setStep('selection')} 
-            />
           )}
 
           {step === 'processing' && (
