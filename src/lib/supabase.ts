@@ -22,7 +22,7 @@ const RLS_TABLES = new Set([
  * but routes through server actions (bypassing RLS).
  */
 function createSafeQueryBuilder(table: string) {
-  type Filter = { column: string; op: string; value: any; value2?: any };
+  type Filter = { column?: string; op: string; value: any; value2?: any };
   let _select = '*';
   let _filters: Filter[] = [];
   let _order: { column: string; ascending?: boolean } | undefined;
@@ -43,6 +43,7 @@ function createSafeQueryBuilder(table: string) {
     in(col: string, vals: any[]) { _filters.push({ column: col, op: 'in', value: vals }); return chain; },
     is(col: string, val: any) { _filters.push({ column: col, op: 'is', value: val }); return chain; },
     filter(col: string, op: string, val: any) { _filters.push({ column: col, op: 'filter', value: op, value2: val }); return chain; },
+    or(val: string) { _filters.push({ op: 'or', value: val }); return chain; },
     order(col: string, opts?: { ascending?: boolean }) { _order = { column: col, ascending: opts?.ascending }; return chain; },
     limit(n: number) { _limit = n; return chain; },
     range(from: number, to: number) { _range = [from, to]; return chain; },

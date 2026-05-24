@@ -127,17 +127,26 @@ export default function POSPage() {
       return;
     }
     setLoadingCust(true);
-    const { data } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('store_id', storeToUse)
-      .or(`full_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`)
-      .limit(10);
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('store_id', storeToUse)
+        .or(`full_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`)
+        .limit(10);
 
-    if (data) {
-      setCustResults(data);
+      if (error) {
+        console.error("Customer search error:", error);
+        toast.error(`Customer search failed: ${error.message} (${error.code})`);
+      } else if (data) {
+        setCustResults(data);
+      }
+    } catch (err: any) {
+      console.error("Customer search exception:", err);
+      toast.error(`Search error: ${err.message || 'Unknown error occurred'}`);
+    } finally {
+      setLoadingCust(false);
     }
-    setLoadingCust(false);
   };
 
   const handleRegisterCustomer = async (e: React.FormEvent) => {
