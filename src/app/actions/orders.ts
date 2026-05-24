@@ -38,6 +38,23 @@ export async function voidOrder(orderId: string) {
 
     if (updateError) throw updateError;
 
+    // 2b. Reverse Customer Loyalty Points
+    if (order.customer_id) {
+      const { data: customer } = await supabase
+        .from('customers')
+        .select('loyalty_points')
+        .eq('id', order.customer_id)
+        .maybeSingle();
+
+      if (customer) {
+        const newPoints = Math.max(0, customer.loyalty_points - (order.points_earned || 0) + (order.points_redeemed || 0));
+        await supabase
+          .from('customers')
+          .update({ loyalty_points: newPoints })
+          .eq('id', order.customer_id);
+      }
+    }
+
     // 3. Restore inventory
     for (const item of order.order_items) {
       // Increment stock
@@ -144,6 +161,25 @@ export async function refundOrder(orderId: string, itemsToRefund: { id: string, 
       .eq('id', orderId);
 
     if (updateError) throw updateError;
+
+    // 4b. Adjust Customer Loyalty Points
+    if (order.customer_id) {
+      const { data: customer } = await supabase
+        .from('customers')
+        .select('loyalty_points')
+        .eq('id', order.customer_id)
+        .maybeSingle();
+
+      if (customer) {
+        const pointsToDeduct = Math.floor(totalRefundWithTax / 100);
+        const pointsToRestore = isFullRefund ? (order.points_redeemed || 0) : 0;
+        const newPoints = Math.max(0, customer.loyalty_points - pointsToDeduct + pointsToRestore);
+        await supabase
+          .from('customers')
+          .update({ loyalty_points: newPoints })
+          .eq('id', order.customer_id);
+      }
+    }
 
     revalidatePath('/orders');
     revalidatePath('/dashboard');

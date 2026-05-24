@@ -15,6 +15,14 @@ interface CartItem extends Product {
   selected_serials?: string[];
 }
 
+export interface Customer {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  loyalty_points: number;
+}
+
 interface CartState {
   items: CartItem[];
   addItem: (product: Product, details?: { variant_id?: string; variant_name?: string; price?: number; serial_number?: string; selected_serials?: string[]; sku?: string; stock_quantity?: number }) => void;
@@ -28,10 +36,24 @@ interface CartState {
   discountType: 'amount' | 'percentage';
   setDiscount: (amount: number, type?: 'amount' | 'percentage') => void;
   calculateTotals: () => void;
+  customer: Customer | null;
+  redeemPoints: boolean;
+  setCustomer: (customer: Customer | null) => void;
+  setRedeemPoints: (redeem: boolean) => void;
 }
 
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
+  customer: null,
+  redeemPoints: false,
+  setCustomer: (customer) => {
+    set({ customer, redeemPoints: false });
+    get().calculateTotals();
+  },
+  setRedeemPoints: (redeemPoints) => {
+    set({ redeemPoints });
+    get().calculateTotals();
+  },
   addItem: (product, details) => {
     const items = get().items;
     const existingItem = items.find((item) => 
@@ -120,7 +142,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     });
     get().calculateTotals();
   },
-  clearCart: () => set({ items: [], total: 0, subtotal: 0, tax: 0, discount: 0, discountType: 'amount' }),
+  clearCart: () => set({ items: [], total: 0, subtotal: 0, tax: 0, discount: 0, discountType: 'amount', customer: null, redeemPoints: false }),
   subtotal: 0,
   tax: 0,
   discount: 0,
@@ -130,6 +152,8 @@ export const useCartStore = create<CartState>((set, get) => ({
     const items = get().items;
     const discount = get().discount;
     const discountType = get().discountType;
+    const customer = get().customer;
+    const redeemPoints = get().redeemPoints;
     
     const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
     const tax = subtotal * 0.08; // 8% tax
@@ -141,7 +165,13 @@ export const useCartStore = create<CartState>((set, get) => ({
       discountValue = discount;
     }
 
-    const total = Math.max(0, subtotal + tax - discountValue);
+    // Apply 2% discount if customer is selected, has >= 100 points, and points redemption is toggled
+    let pointsDiscountValue = 0;
+    if (redeemPoints && customer && customer.loyalty_points >= 100) {
+      pointsDiscountValue = (subtotal + tax - discountValue) * 0.02;
+    }
+
+    const total = Math.max(0, subtotal + tax - discountValue - pointsDiscountValue);
     set({ subtotal, tax, total });
   },
-}));
+}));;

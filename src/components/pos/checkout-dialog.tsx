@@ -49,6 +49,12 @@ interface ReceiptData {
   cashTendered?: string;
   changeDue?: number;
   cashierName?: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  pointsEarned?: number;
+  pointsRedeemed?: number;
+  pointsBalance?: number;
 }
 
 export function CheckoutDialog({ 
@@ -76,6 +82,8 @@ export function CheckoutDialog({
   const { profile } = useAuthStore();
   const { activeStoreId } = useActiveStore();
   const { clearCart } = useCartStore();
+  const customer = useCartStore(state => state.customer);
+  const redeemPoints = useCartStore(state => state.redeemPoints);
   const [step, setStep] = useState<CheckoutStep>('selection');
   const [method, setMethod] = useState<'cash' | 'card'>('cash');
   const [cashTendered, setCashTendered] = useState<string>('');
@@ -123,22 +131,42 @@ export function CheckoutDialog({
     }
     setStep('processing');
     try {
+      const pointsEarned = customer ? Math.floor(total / 100) : 0;
+      const pointsRedeemed = customer && redeemPoints && customer.loyalty_points >= 100 ? 100 : 0;
+
+      const pointsDiscount = (customer && redeemPoints && customer.loyalty_points >= 100) ? (subtotal + tax - discount) * 0.02 : 0;
+      const finalDiscountAmount = discount + pointsDiscount;
+
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           total_amount: total,
           tax_amount: tax,
-          discount_amount: discount,
+          discount_amount: finalDiscountAmount,
           payment_method: method,
           payment_status: 'completed',
           store_id: storeToUse,
           cashier_id: profile?.id,
           stripe_payment_intent_id: null,
+          customer_id: customer ? customer.id : null,
+          points_earned: pointsEarned,
+          points_redeemed: pointsRedeemed
         })
         .select()
         .single();
 
       if (orderError) throw orderError;
+
+      // Update customer loyalty points
+      if (customer) {
+        const newPoints = customer.loyalty_points - pointsRedeemed + pointsEarned;
+        const { error: customerUpdateError } = await supabase
+          .from('customers')
+          .update({ loyalty_points: newPoints })
+          .eq('id', customer.id);
+        
+        if (customerUpdateError) console.error("Error updating customer points:", customerUpdateError);
+      }
 
       const orderItems = items.map(item => ({
         order_id: order.id,
@@ -218,7 +246,13 @@ export function CheckoutDialog({
         cardBrand: brand,
         cashTendered: method === 'cash' ? cashTendered : undefined,
         changeDue: method === 'cash' ? changeDue : undefined,
-        cashierName: profile?.full_name || 'System'
+        cashierName: profile?.full_name || 'System',
+        customerName: customer ? customer.full_name : undefined,
+        customerPhone: customer ? customer.phone || undefined : undefined,
+        customerEmail: customer ? customer.email || undefined : undefined,
+        pointsEarned: pointsEarned,
+        pointsRedeemed: pointsRedeemed,
+        pointsBalance: customer ? (customer.loyalty_points - pointsRedeemed + pointsEarned) : 0
       });
 
       setStep('success');
@@ -366,11 +400,19 @@ export function CheckoutDialog({
     doc.text('----------------------------------------------------', 105, 45, { align: 'center' });
     
     doc.setFontSize(11);
-    doc.text(`Order ID: #${receiptData.orderId.slice(0, 8)}`, 20, 60);
-    doc.text(`Date: ${receiptData.date}`, 20, 68);
-    doc.text(`Payment: ${receiptData.method.toUpperCase()}${receiptData.cardLast4 ? ` (Card ending in ${receiptData.cardLast4})` : ''}`, 20, 76);
+    doc.text(`Order ID: #${receiptData.orderId.slice(0, 8)}`, 20, 56);
+    doc.text(`Date: ${receiptData.date}`, 20, 63);
+    doc.text(`Payment: ${receiptData.method.toUpperCase()}${receiptData.cardLast4 ? ` (Card ending in ${receiptData.cardLast4})` : ''}`, 20, 70);
     
-    let y = 90;
+    if (receiptData.customerName) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('CUSTOMER DETAILS:', 20, 80);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Name: ${receiptData.customerName}`, 20, 86);
+      doc.text(`Phone: ${receiptData.customerPhone || 'N/A'} | Email: ${receiptData.customerEmail || 'N/A'}`, 20, 92);
+    }
+
+    let y = receiptData.customerName ? 104 : 85;
     doc.setFont('helvetica', 'bold');
     doc.text('ITEM', 20, y);
     doc.text('QTY', 120, y);
@@ -405,6 +447,16 @@ export function CheckoutDialog({
       doc.text(`-₹${discStr}`, 190, y, { align: 'right' });
       doc.setTextColor(0, 0, 0);
     }
+
+    if (receiptData.pointsRedeemed && receiptData.pointsRedeemed > 0) {
+      y += 7;
+      doc.setTextColor(220, 50, 50);
+      doc.text('Loyalty Discount (2%):', 130, y);
+      const pointsDiscVal = (receiptData.subtotal + receiptData.tax - (receiptData.discountType === 'percentage' ? (receiptData.subtotal + receiptData.tax) * (receiptData.discount / 100) : receiptData.discount)) * 0.02;
+      doc.text(`-₹${pointsDiscVal.toFixed(2)}`, 190, y, { align: 'right' });
+      doc.setTextColor(0, 0, 0);
+    }
+    
     y += 10;
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
@@ -421,10 +473,25 @@ export function CheckoutDialog({
       doc.text('Change:', 130, y);
       doc.text(`₹${(receiptData.changeDue || 0).toFixed(2)}`, 190, y, { align: 'right' });
     }
+
+    if (receiptData.customerName) {
+      y += 15;
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('LOYALTY POINTS SUMMARY:', 20, y);
+      doc.setFont('helvetica', 'normal');
+      y += 7;
+      doc.text(`Points Earned this Visit: +${receiptData.pointsEarned}`, 20, y);
+      y += 7;
+      doc.text(`Points Redeemed: -${receiptData.pointsRedeemed}`, 20, y);
+      y += 7;
+      doc.text(`New Points Balance: ${receiptData.pointsBalance} pts`, 20, y);
+    }
     
+    y += 20;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
-    doc.text('Thank you for shopping with OrbitPOS!', 105, y + 30, { align: 'center' });
+    doc.text('Thank you for shopping with OrbitPOS!', 105, y, { align: 'center' });
     
     doc.save(`orbitpos-receipt-${receiptData.orderId.slice(0, 8)}.pdf`);
   };

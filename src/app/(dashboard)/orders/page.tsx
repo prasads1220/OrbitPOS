@@ -93,7 +93,10 @@ export default function OrdersPage() {
           payment_method,
           created_at,
           refunded_amount,
+          points_earned,
+          points_redeemed,
           cashier:profiles!cashier_id ( full_name ),
+          customer:customers!customer_id ( full_name, email, phone, loyalty_points ),
           order_items (
             id,
             quantity,
@@ -256,8 +259,15 @@ export default function OrdersPage() {
         subtotal: subtotal,
         tax: tax,
         total: subtotal + tax,
+        discount: order.discount_amount || 0,
         cashierName: order.cashier?.full_name || 'System',
-        type: 'refund'
+        type: 'refund',
+        customerName: order.customer ? order.customer.full_name : undefined,
+        customerPhone: order.customer ? order.customer.phone : undefined,
+        customerEmail: order.customer ? order.customer.email : undefined,
+        pointsEarned: order.points_earned || 0,
+        pointsRedeemed: order.points_redeemed || 0,
+        pointsBalance: order.customer ? order.customer.loyalty_points : 0
       });
     } else {
       const subtotal = order.order_items.reduce((sum: number, item: any) => sum + (item.unit_price * item.quantity), 0);
@@ -276,8 +286,15 @@ export default function OrdersPage() {
         subtotal: subtotal,
         tax: order.tax_amount || 0,
         total: order.total_amount,
+        discount: order.discount_amount || 0,
         cashierName: order.cashier?.full_name || 'System',
-        type: 'sale'
+        type: 'sale',
+        customerName: order.customer ? order.customer.full_name : undefined,
+        customerPhone: order.customer ? order.customer.phone : undefined,
+        customerEmail: order.customer ? order.customer.email : undefined,
+        pointsEarned: order.points_earned || 0,
+        pointsRedeemed: order.points_redeemed || 0,
+        pointsBalance: order.customer ? order.customer.loyalty_points : 0
       });
     }
   };
@@ -351,7 +368,10 @@ export default function OrdersPage() {
 
   const filteredOrders = orders.filter(o => 
     o.id.toLowerCase().includes(search.toLowerCase()) || 
-    (o.cashier?.full_name || '').toLowerCase().includes(search.toLowerCase())
+    (o.cashier?.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (o.customer?.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (o.customer?.phone || '').toLowerCase().includes(search.toLowerCase()) ||
+    (o.customer?.email || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const paginatedOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -557,6 +577,22 @@ export default function OrdersPage() {
                 })}
              </div>
              
+             {selectedOrder?.customer && (
+               <div className="pt-4 border-t border-gray-100 space-y-2 text-[12px]">
+                 <p className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">Customer Details</p>
+                 <div className="bg-gray-50/50 p-3.5 rounded-xl space-y-1 text-[11px]">
+                   <p className="font-black text-black">{selectedOrder.customer.full_name}</p>
+                   <p className="text-gray-500 font-medium">{selectedOrder.customer.phone || selectedOrder.customer.email || 'No contact details'}</p>
+                   <div className="flex gap-4 pt-1.5 font-bold text-gray-400">
+                     <span>Earned: <span className="text-[#0071e3] font-black">+{selectedOrder.points_earned || 0} pts</span></span>
+                     {selectedOrder.points_redeemed > 0 && (
+                       <span>Redeemed: <span className="text-rose-500 font-black">-{selectedOrder.points_redeemed} pts</span></span>
+                     )}
+                   </div>
+                 </div>
+               </div>
+             )}
+
              {!isRefunding ? (
                <>
                  <div className="pt-6 border-t border-gray-100 flex justify-between items-center">

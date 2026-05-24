@@ -184,6 +184,13 @@ export interface Database {
           payment_method: string | null
           payment_status: string | null
           created_at: string
+          store_id: string | null
+          voided_at: string | null
+          refunded_at: string | null
+          refund_reason: string | null
+          refunded_amount: number | null
+          points_earned: number | null
+          points_redeemed: number | null
         }
         Insert: {
           id?: string
@@ -196,6 +203,13 @@ export interface Database {
           payment_method?: string | null
           payment_status?: string | null
           created_at?: string
+          store_id?: string | null
+          voided_at?: string | null
+          refunded_at?: string | null
+          refund_reason?: string | null
+          refunded_amount?: number | null
+          points_earned?: number | null
+          points_redeemed?: number | null
         }
         Update: {
           id?: string
@@ -207,6 +221,42 @@ export interface Database {
           discount_amount?: number
           payment_method?: string | null
           payment_status?: string | null
+          created_at?: string
+          store_id?: string | null
+          voided_at?: string | null
+          refunded_at?: string | null
+          refund_reason?: string | null
+          refunded_amount?: number | null
+          points_earned?: number | null
+          points_redeemed?: number | null
+        }
+      }
+      customers: {
+        Row: {
+          id: string
+          full_name: string
+          email: string | null
+          phone: string | null
+          loyalty_points: number
+          store_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          full_name: string
+          email?: string | null
+          phone?: string | null
+          loyalty_points?: number
+          store_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          full_name?: string
+          email?: string | null
+          phone?: string | null
+          loyalty_points?: number
+          store_id?: string | null
           created_at?: string
         }
       }

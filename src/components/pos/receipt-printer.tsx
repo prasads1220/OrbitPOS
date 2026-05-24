@@ -19,6 +19,12 @@ interface ReceiptPrinterProps {
     cashierName?: string;
     type?: 'sale' | 'refund' | 'void';
     refundReason?: string;
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
+    pointsEarned?: number;
+    pointsRedeemed?: number;
+    pointsBalance?: number;
   } | null;
 }
 
@@ -66,6 +72,18 @@ export function ReceiptPrinter({ receiptData }: ReceiptPrinterProps) {
               <span>{receiptData.cashierName}</span>
             </p>
           )}
+
+          {receiptData.customerName && (
+            <div className="border-t border-dashed pt-1.5 mt-1.5 space-y-0.5">
+              <p className="flex justify-between"><span>CUSTOMER:</span> <span className="font-bold">{receiptData.customerName}</span></p>
+              {receiptData.customerPhone && (
+                <p className="flex justify-between"><span>PHONE:</span> <span>{receiptData.customerPhone}</span></p>
+              )}
+              {receiptData.customerEmail && (
+                <p className="flex justify-between"><span>EMAIL:</span> <span>{receiptData.customerEmail}</span></p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="border-t border-b py-2 space-y-2">
@@ -108,6 +126,12 @@ export function ReceiptPrinter({ receiptData }: ReceiptPrinterProps) {
               <span>-₹{receiptData.discount.toFixed(2)}</span>
             </p>
           )}
+          {receiptData.pointsRedeemed && receiptData.pointsRedeemed > 0 && (
+            <p className="flex justify-between text-rose-600">
+              <span>POINTS DISCOUNT (2%):</span> 
+              <span>-₹{((receiptData.subtotal + receiptData.tax - receiptData.discount) * 0.02).toFixed(2)}</span>
+            </p>
+          )}
           <p className="flex justify-between text-lg font-bold border-t pt-2">
             <span>TOTAL:</span> 
             <span>{receiptData.type === 'refund' ? '-' : ''}₹{receiptData.total.toFixed(2)}</span>
@@ -118,6 +142,15 @@ export function ReceiptPrinter({ receiptData }: ReceiptPrinterProps) {
           <div className="space-y-1 border-t pt-2 opacity-80">
             <p className="flex justify-between"><span>CASH TENDERED:</span> <span>₹{(parseFloat(receiptData.cashTendered || '0') || receiptData.total).toFixed(2)}</span></p>
             <p className="flex justify-between"><span>CHANGE DUE:</span> <span>₹{(receiptData.changeDue || 0).toFixed(2)}</span></p>
+          </div>
+        )}
+
+        {receiptData.customerName && (
+          <div className="border-t border-b border-dashed py-2 space-y-1 text-[10px] opacity-90">
+            <p className="font-bold text-center uppercase tracking-wider text-[11px] mb-1">Loyalty Points Summary</p>
+            <p className="flex justify-between"><span>POINTS EARNED:</span> <span className="font-bold text-[#0071e3] font-mono">+{receiptData.pointsEarned || 0}</span></p>
+            <p className="flex justify-between"><span>POINTS REDEEMED:</span> <span className="font-bold text-rose-500 font-mono">-{receiptData.pointsRedeemed || 0}</span></p>
+            <p className="flex justify-between border-t border-gray-100 pt-1 mt-1 font-bold"><span>CURRENT BALANCE:</span> <span>{receiptData.pointsBalance || 0} pts</span></p>
           </div>
         )}
 

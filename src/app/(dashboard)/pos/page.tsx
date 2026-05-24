@@ -17,7 +17,16 @@ import {
   LayoutGrid,
   List,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  UserCheck,
+  History,
+  X,
+  Loader2,
+  ArrowLeft,
+  Check,
+  Printer,
+  ArrowRight,
+  UserMinus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +36,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Database } from '@/types/supabase';
 import { CheckoutDialog } from '@/components/pos/checkout-dialog';
+import { ReceiptPrinter } from '@/components/pos/receipt-printer';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -80,7 +90,269 @@ export default function POSPage() {
   const [selectedSerial, setSelectedSerial] = useState<string>('');
   const [manualSerialInput, setManualSerialInput] = useState('');
 
+  // Customer & Loyalty states from Cart Store
+  const customer = useCartStore(state => state.customer);
+  const redeemPoints = useCartStore(state => state.redeemPoints);
+  const setCustomer = useCartStore(state => state.setCustomer);
+  const setRedeemPoints = useCartStore(state => state.setRedeemPoints);
+
+  // Search & Register Dialog states
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [custSearch, setCustSearch] = useState('');
+  const [custResults, setCustResults] = useState<any[]>([]);
+  const [loadingCust, setLoadingCust] = useState(false);
+
+  // New Customer Form State
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [submittingCust, setSubmittingCust] = useState(false);
+
+  // Customer Order History Modal State
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [pastOrders, setPastOrders] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [selectedPastOrder, setSelectedPastOrder] = useState<any | null>(null);
+
+  // Receipt Reprinting state
+  const [receiptData, setReceiptData] = useState<any | null>(null);
+
   const storeToUse = activeStoreId || profile?.store_id;
+
+  const handleCustomerSearch = async (query: string) => {
+    setCustSearch(query);
+    if (!storeToUse) return;
+    if (query.trim().length === 0) {
+      setCustResults([]);
+      return;
+    }
+    setLoadingCust(true);
+    const { data } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('store_id', storeToUse)
+      .or(`full_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`)
+      .limit(10);
+
+    if (data) {
+      setCustResults(data);
+    }
+    setLoadingCust(false);
+  };
+
+  const handleRegisterCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!storeToUse) return;
+    if (!newName.trim()) {
+      toast.error('Please enter a name');
+      return;
+    }
+    setSubmittingCust(true);
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .insert({
+          full_name: newName,
+          phone: newPhone || null,
+          email: newEmail || null,
+          store_id: storeToUse,
+          loyalty_points: 0
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Customer registered successfully!');
+      setCustomer(data);
+      setAssignOpen(false);
+      setNewName('');
+      setNewPhone('');
+      setNewEmail('');
+    } catch (err: any) {
+      toast.error(err.message || 'Error registering customer');
+    } finally {
+      setSubmittingCust(false);
+    }
+  };
+
+  const fetchCustomerHistory = async () => {
+    if (!customer || !storeToUse) return;
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          total_amount,
+          tax_amount,
+          discount_amount,
+          payment_status,
+          payment_method,
+          created_at,
+          refunded_amount,
+          points_earned,
+          points_redeemed,
+          cashier:profiles!cashier_id ( full_name ),
+          order_items (
+            id,
+            quantity,
+            refunded_quantity,
+            total_price,
+            unit_price,
+            variant_id,
+            serial_number,
+            products ( name, price, sku ),
+            product_variants ( model_name, sku, barcode )
+          )
+        `)
+        .eq('customer_id', customer.id)
+        .eq('store_id', storeToUse)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPastOrders(data || []);
+    } catch (err) {
+      console.error('Error fetching customer history:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handlePrint = () => {
+    const printContent = document.getElementById('printable-receipt');
+    if (!printContent) return;
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) {
+      toast.error('Please allow popups to print receipts');
+      return;
+    }
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>OrbitPOS Receipt</title>
+          <style>
+            @page { size: 80mm auto; margin: 0; }
+            body { margin: 0; padding: 0; font-family: monospace; background: white; }
+            #printable-receipt { display: block !important; width: 80mm; padding: 5mm; margin: 0; background: white; }
+            * { box-sizing: border-box; color: black !important; }
+            .space-y-4 > * + * { margin-top: 1rem; }
+            .space-y-2 > * + * { margin-top: 0.5rem; }
+            .space-y-1 > * + * { margin-top: 0.25rem; }
+            .flex { display: flex; }
+            .justify-between { justify-content: space-between; }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            .font-bold { font-weight: bold; }
+            .uppercase { text-transform: uppercase; }
+            .border-t { border-top: 1px solid black; }
+            .border-b { border-bottom: 1px solid black; }
+            .border-y { border-top: 1px solid black; border-bottom: 1px solid black; }
+            .border-dashed { border-style: dashed; }
+            .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+            .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+            .pt-2 { padding-top: 0.5rem; }
+            .pt-8 { padding-top: 2rem; }
+            .pb-4 { padding-bottom: 1rem; }
+            .mb-4 { margin-bottom: 1rem; }
+            .mb-8 { margin-bottom: 2rem; }
+            .mt-1 { margin-top: 0.25rem; }
+            .mt-8 { margin-top: 2rem; }
+            .text-xl { font-size: 1.25rem; }
+            .text-lg { font-size: 1.125rem; }
+            .text-[14px] { font-size: 14px; }
+            .text-[12px] { font-size: 12px; }
+            .text-[10px] { font-size: 10px; }
+            .text-[9px] { font-size: 9px; }
+            .font-mono { font-family: monospace; }
+            .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .w-1/2 { width: 50%; }
+            .w-1/4 { width: 25%; }
+            .opacity-70 { opacity: 0.7; }
+            .opacity-80 { opacity: 0.8; }
+            .italic { font-style: italic; }
+            .tracking-widest { letter-spacing: 0.1em; }
+            .tracking-tight { letter-spacing: -0.025em; }
+          </style>
+        </head>
+        <body>
+          <div id="printable-receipt">\${printContent.innerHTML}</div>
+          <script>
+            window.onload = () => {
+              window.print();
+              setTimeout(() => { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  useEffect(() => {
+    if (receiptData) {
+      setTimeout(() => {
+        handlePrint();
+        setReceiptData(null);
+      }, 500);
+    }
+  }, [receiptData]);
+
+  const handleReprint = (order: any) => {
+    const isRefunded = order.payment_status === 'refunded' || order.payment_status === 'partially_refunded';
+    if (isRefunded) {
+      const refundedItems = order.order_items.filter((item: any) => (item.refunded_quantity || 0) > 0);
+      const subtotal = refundedItems.reduce((sum: number, item: any) => sum + (item.unit_price * item.refunded_quantity), 0);
+      const preTaxTotal = order.total_amount - (order.tax_amount || 0);
+      const taxRate = preTaxTotal > 0 ? (order.tax_amount || 0) / preTaxTotal : 0;
+      const tax = subtotal * taxRate;
+      setReceiptData({
+        orderId: order.id,
+        date: new Date(order.created_at).toLocaleString(),
+        method: order.payment_method,
+        items: refundedItems.map((item: any) => ({
+          name: item.products?.name,
+          quantity: item.refunded_quantity,
+          unit_price: item.unit_price,
+          price: item.unit_price,
+          variant_name: item.product_variants?.model_name || null,
+          serial_number: item.serial_number || null,
+        })),
+        subtotal: subtotal,
+        tax: tax,
+        total: subtotal + tax,
+        cashierName: order.cashier?.full_name || 'System',
+        type: 'refund'
+      });
+    } else {
+      const subtotal = order.order_items.reduce((sum: number, item: any) => sum + (item.unit_price * item.quantity), 0);
+      setReceiptData({
+        orderId: order.id,
+        date: new Date(order.created_at).toLocaleString(),
+        method: order.payment_method,
+        items: order.order_items.map((item: any) => ({
+          name: item.products?.name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          price: item.unit_price,
+          variant_name: item.product_variants?.model_name || null,
+          serial_number: item.serial_number || null,
+        })),
+        subtotal: subtotal,
+        tax: order.tax_amount || 0,
+        total: order.total_amount,
+        cashierName: order.cashier?.full_name || 'System',
+        type: 'sale'
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (historyOpen && customer) {
+      fetchCustomerHistory();
+    }
+  }, [historyOpen, customer]);
 
   useEffect(() => {
     if (storeToUse) {
@@ -533,10 +805,69 @@ export default function POSPage() {
             </Button>
           </div>
           
-          <Button variant="ghost" className="w-full text-gray-400 font-black text-[9px] h-6 hover:text-[#0071e3] rounded-xl uppercase tracking-widest">
-            <UserPlus className="mr-1.5 h-3.5 w-3.5" />
-            Assign Customer
-          </Button>
+          {customer ? (
+            <div className="mt-3 bg-blue-50/50 border border-blue-100/50 rounded-2xl p-4 space-y-3 transition-all animate-in fade-in duration-300">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-black text-black text-[13px]">{customer.full_name}</span>
+                    <Badge className="bg-[#0071e3]/10 text-[#0071e3] border-none font-bold text-[8px] h-3.5 px-1 py-0">
+                      {customer.loyalty_points} pts
+                    </Badge>
+                  </div>
+                  <p className="text-[10px] text-gray-400 font-bold mt-1">
+                    {customer.phone || customer.email || 'No contact details'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-lg text-[#0071e3] hover:bg-[#0071e3]/10"
+                    onClick={() => setHistoryOpen(true)}
+                  >
+                    <History className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-lg text-rose-500 hover:bg-rose-50"
+                    onClick={() => { setCustomer(null); setRedeemPoints(false); }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {customer.loyalty_points >= 100 && (
+                <div className="flex items-center justify-between bg-white border border-blue-100 p-2.5 rounded-xl">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-bold uppercase text-emerald-600 tracking-wider">Loyalty Reward</span>
+                    <span className="text-[10px] font-black text-gray-700">2% off for 100 points</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRedeemPoints(!redeemPoints)}
+                    className={cn(
+                      "w-10 h-6 rounded-full p-0.5 transition-colors duration-200 outline-none flex items-center",
+                      redeemPoints ? "bg-emerald-500 justify-end" : "bg-gray-200 justify-start"
+                    )}
+                  >
+                    <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              className="w-full text-gray-500 border-dashed border-gray-200 hover:border-[#0071e3] hover:text-[#0071e3] font-black text-[10px] h-10 rounded-2xl uppercase tracking-widest mt-3 transition-all active:scale-95"
+              onClick={() => setAssignOpen(true)}
+            >
+              <UserPlus className="mr-1.5 h-4 w-4" />
+              Assign Customer
+            </Button>
+          )}
         </div>
 
         {/* Checkout Dialog */}
@@ -667,6 +998,197 @@ export default function POSPage() {
               Add to Cart
               <ChevronRight className="ml-1.5 h-4 w-4" />
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden Receipt Printer */}
+      <div className="hidden">
+        {receiptData && <ReceiptPrinter receiptData={receiptData} />}
+      </div>
+
+      {/* Assign Customer Dialog */}
+      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl bg-white">
+          <div className="p-8 bg-[#fbfbfd] border-b border-gray-50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
+                <UserPlus className="text-white h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-black text-black tracking-tight">Customer CRM</DialogTitle>
+                <p className="text-gray-400 font-bold text-[11px] mt-0.5">Assign or register a customer</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-8 space-y-6">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Input
+                placeholder="Search by name, mobile, or email..."
+                className="pl-12 h-12 bg-gray-50 border-transparent rounded-xl focus:bg-white font-bold text-[13px]"
+                value={custSearch}
+                onChange={(e) => handleCustomerSearch(e.target.value)}
+              />
+            </div>
+
+            {/* Search Results */}
+            {custSearch.trim().length > 0 && (
+              <div className="space-y-2.5 max-h-[220px] overflow-y-auto custom-scrollbar">
+                <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Search Results</Label>
+                {loadingCust ? (
+                  <div className="text-center py-6"><Loader2 className="animate-spin h-6 w-6 text-gray-300 mx-auto" /></div>
+                ) : custResults.length === 0 ? (
+                  <p className="text-center py-6 text-gray-400 text-[13px] font-bold">No registered customers found.</p>
+                ) : (
+                  custResults.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className="w-full flex items-center justify-between p-3.5 rounded-xl border border-gray-100 hover:border-[#0071e3] hover:bg-blue-50/10 text-left transition-all"
+                      onClick={() => {
+                        setCustomer(c);
+                        setAssignOpen(false);
+                      }}
+                    >
+                      <div>
+                        <p className="font-black text-black text-[13px]">{c.full_name}</p>
+                        <p className="text-[10px] text-gray-400 font-bold mt-1">{c.phone || c.email || 'No contact details'}</p>
+                      </div>
+                      <Badge className="bg-[#0071e3]/10 text-[#0071e3] border-none font-bold text-[10px]">
+                        {c.loyalty_points} pts
+                      </Badge>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Quick Registration Form */}
+            <form onSubmit={handleRegisterCustomer} className="space-y-4 pt-4 border-t border-gray-100">
+              <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Register New Customer</Label>
+              <div className="space-y-3">
+                <Input
+                  placeholder="Full Name (Required)"
+                  className="h-11 bg-gray-50 border-transparent rounded-xl focus:bg-white font-bold text-[13px]"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  required
+                />
+                <Input
+                  placeholder="Mobile Number"
+                  type="tel"
+                  className="h-11 bg-gray-50 border-transparent rounded-xl focus:bg-white font-bold text-[13px]"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                />
+                <Input
+                  placeholder="Email Address"
+                  type="email"
+                  className="h-11 bg-gray-50 border-transparent rounded-xl focus:bg-white font-bold text-[13px]"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={submittingCust}
+                className="w-full h-11 bg-black hover:bg-gray-800 text-white font-black rounded-xl text-[13px] shadow-lg shadow-black/10 mt-2 transition-all active:scale-95"
+              >
+                {submittingCust ? <Loader2 className="animate-spin h-5 w-5" /> : 'Register & Assign'}
+              </Button>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Customer Purchase History Modal */}
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="sm:max-w-[540px] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl bg-white max-h-[90vh] flex flex-col">
+          <div className="p-8 bg-[#fbfbfd] border-b border-gray-50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
+                  <History className="text-white h-5 w-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl font-black text-black tracking-tight">Purchase History</DialogTitle>
+                  <p className="text-gray-400 font-bold text-[11px] mt-0.5">{customer?.full_name}</p>
+                </div>
+              </div>
+              <Badge className="bg-[#0071e3] text-white border-none font-black text-[10px] px-3 py-1 rounded-lg">
+                {customer?.loyalty_points || 0} Points Balance
+              </Badge>
+            </div>
+          </div>
+
+          <div className="p-8 flex-1 overflow-y-auto custom-scrollbar space-y-4">
+            {loadingHistory ? (
+              <div className="text-center py-20"><Loader2 className="animate-spin h-10 w-10 text-gray-200 mx-auto" /></div>
+            ) : pastOrders.length === 0 ? (
+              <div className="text-center py-20 space-y-3">
+                <PackageX className="h-14 w-14 text-gray-200 mx-auto" />
+                <h3 className="text-lg font-black text-black">No Purchases Recorded</h3>
+                <p className="text-gray-400 font-bold text-[12px] max-w-[280px] mx-auto">This customer has not completed any transactions yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pastOrders.map((order) => (
+                  <div key={order.id} className="border border-gray-100 rounded-2xl p-5 hover:border-gray-200 transition-all space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-black text-black text-[13px]">ORDER #{order.id.slice(0, 8).toUpperCase()}</p>
+                        <p className="text-[10px] text-gray-400 font-bold mt-1">
+                          {new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-black text-black text-base">₹{order.total_amount.toFixed(2)}</span>
+                        <div className="flex items-center gap-1.5 justify-end mt-1">
+                          <Badge className={cn("border-none font-black text-[9px] h-4 px-1.5", order.payment_status === 'completed' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600")}>
+                            {order.payment_status.toUpperCase()}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Order Items Summary */}
+                    <div className="bg-gray-50/50 rounded-xl p-3.5 space-y-1.5 text-[12px]">
+                      {order.order_items.map((oi: any, idx: number) => (
+                        <div key={idx} className="flex justify-between text-gray-600">
+                          <span className="font-bold truncate max-w-[260px]">{oi.products?.name} {oi.product_variants?.model_name ? `(${oi.product_variants.model_name})` : ''}</span>
+                          <span className="text-gray-400 font-medium">x{oi.quantity} - ₹{(oi.quantity * oi.unit_price).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] font-bold text-gray-400 border-t border-dashed border-gray-100 pt-3">
+                      <div className="flex gap-4">
+                        <span>Earned: <span className="text-[#0071e3] font-black">{order.points_earned || 0} pts</span></span>
+                        {order.points_redeemed > 0 && (
+                          <span>Redeemed: <span className="text-rose-500 font-black">{order.points_redeemed} pts</span></span>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 rounded-lg text-black font-bold text-[11px] px-3 hover:bg-gray-50"
+                          onClick={() => handleReprint(order)}
+                        >
+                          <Printer className="h-3.5 w-3.5 mr-1" /> Reprint
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="p-6 border-t border-gray-50 bg-[#fbfbfd] flex justify-end">
+            <Button className="rounded-xl font-bold bg-black text-white hover:bg-gray-800" onClick={() => setHistoryOpen(false)}>Close</Button>
           </div>
         </DialogContent>
       </Dialog>
