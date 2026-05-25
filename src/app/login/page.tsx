@@ -1,15 +1,43 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { LoginForm } from '@/components/auth/login-form';
 import Image from 'next/image';
 import { ParticleBackground } from '@/components/ui/particle-background';
 
+const BACKGROUND_IMAGES = [
+  '/images/bg_cafe.png',
+  '/images/bg_boutique.png',
+  '/images/bg_bakery.png',
+  '/images/bg_florist.png',
+  '/images/bg_market.png'
+];
+
 export default function LoginPage() {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % BACKGROUND_IMAGES.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div className="min-h-screen relative flex items-center justify-center overflow-hidden bg-[#0a0604]">
-      {/* Layer 1: Warm Cafe Background Image with slow Ken Burns movement */}
-      <div 
-        className="absolute inset-0 z-0 bg-cover bg-center opacity-85 scale-[1.02] animate-kenburns pointer-events-none" 
-        style={{ backgroundImage: "url('/orbit_bg_premium.png')" }}
-      />
+      {/* Layer 1: Warm Cafe/Retail Background Slideshow with smooth 1.5s cross-fade and Ken Burns movement */}
+      <div className="absolute inset-0 z-0 scale-[1.02] animate-kenburns pointer-events-none">
+        {BACKGROUND_IMAGES.map((src, index) => (
+          <div
+            key={src}
+            className="absolute inset-0 bg-cover bg-center transition-opacity duration-[1500ms] ease-in-out"
+            style={{
+              backgroundImage: `url('${src}')`,
+              opacity: index === currentImageIndex ? 0.85 : 0
+            }}
+          />
+        ))}
+      </div>
       
       {/* Layer 2: Warm ambient gradient overlay to blend colors and ensure high text contrast */}
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#0a0604]/55 via-[#140e0a]/40 to-[#0a0604]/75 pointer-events-none" />
