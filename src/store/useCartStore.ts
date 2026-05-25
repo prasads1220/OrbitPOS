@@ -24,6 +24,12 @@ export interface Customer {
   created_at?: string;
 }
 
+export interface LoyaltySettings {
+  earn_ratio: number;
+  redeem_ratio: number;
+  discount_percent: number;
+}
+
 interface CartState {
   items: CartItem[];
   addItem: (product: Product, details?: { variant_id?: string; variant_name?: string; price?: number; serial_number?: string; selected_serials?: string[]; sku?: string; stock_quantity?: number }) => void;
@@ -41,12 +47,25 @@ interface CartState {
   redeemPoints: boolean;
   setCustomer: (customer: Customer | null) => void;
   setRedeemPoints: (redeem: boolean) => void;
+  loyaltySettings: LoyaltySettings;
+  setLoyaltySettings: (settings: Partial<LoyaltySettings>) => void;
 }
 
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   customer: null,
   redeemPoints: false,
+  loyaltySettings: {
+    earn_ratio: 100,
+    redeem_ratio: 100,
+    discount_percent: 2,
+  },
+  setLoyaltySettings: (settings) => {
+    set((state) => ({
+      loyaltySettings: { ...state.loyaltySettings, ...settings }
+    }));
+    get().calculateTotals();
+  },
   setCustomer: (customer) => {
     set({ customer, redeemPoints: false });
     get().calculateTotals();
@@ -166,10 +185,11 @@ export const useCartStore = create<CartState>((set, get) => ({
       discountValue = discount;
     }
 
-    // Apply 2% discount if customer is selected, has >= 100 points, and points redemption is toggled
+    // Apply dynamic discount if customer is selected, has >= redeem_ratio points, and points redemption is toggled
     let pointsDiscountValue = 0;
-    if (redeemPoints && customer && customer.loyalty_points >= 100) {
-      pointsDiscountValue = (subtotal + tax - discountValue) * 0.02;
+    const loyaltySettings = get().loyaltySettings;
+    if (redeemPoints && customer && customer.loyalty_points >= loyaltySettings.redeem_ratio) {
+      pointsDiscountValue = (subtotal + tax - discountValue) * (loyaltySettings.discount_percent / 100);
     }
 
     const total = Math.max(0, subtotal + tax - discountValue - pointsDiscountValue);

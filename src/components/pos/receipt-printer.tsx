@@ -25,6 +25,8 @@ interface ReceiptPrinterProps {
     pointsEarned?: number;
     pointsRedeemed?: number;
     pointsBalance?: number;
+    pointsDiscountPercent?: number;
+    pointsDiscountValue?: number;
   } | null;
 }
 
@@ -128,8 +130,8 @@ export function ReceiptPrinter({ receiptData }: ReceiptPrinterProps) {
           )}
           {receiptData.pointsRedeemed && receiptData.pointsRedeemed > 0 && (
             <p className="flex justify-between text-rose-600">
-              <span>POINTS DISCOUNT (2%):</span> 
-              <span>-₹{((receiptData.subtotal + receiptData.tax - receiptData.discount) * 0.02).toFixed(2)}</span>
+              <span>POINTS DISCOUNT ({receiptData.pointsDiscountPercent || 2}%):</span> 
+              <span>-₹{(receiptData.pointsDiscountValue || ((receiptData.subtotal + receiptData.tax - receiptData.discount) * 0.02)).toFixed(2)}</span>
             </p>
           )}
           <p className="flex justify-between text-lg font-bold border-t pt-2">

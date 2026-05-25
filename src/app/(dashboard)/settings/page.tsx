@@ -39,6 +39,9 @@ export default function SettingsPage() {
 
   const [storeSettings, setStoreSettings] = useState({
     auto_print_receipt: true,
+    loyalty_points_earn_ratio: 100,
+    loyalty_points_redeem_ratio: 100,
+    loyalty_points_redeem_discount_percent: 2,
   });
 
   const storeToUse = activeStoreId || profile?.store_id;
@@ -60,14 +63,34 @@ export default function SettingsPage() {
   const fetchStoreData = async (storeId: string) => {
     const { data, error } = await supabase
       .from('stores')
-      .select('auto_print_receipt')
+      .select('auto_print_receipt, loyalty_points_earn_ratio, loyalty_points_redeem_ratio, loyalty_points_redeem_discount_percent')
       .eq('id', storeId)
       .single();
     
     if (data) {
       setStoreSettings({
         auto_print_receipt: data.auto_print_receipt ?? true,
+        loyalty_points_earn_ratio: data.loyalty_points_earn_ratio ?? 100,
+        loyalty_points_redeem_ratio: data.loyalty_points_redeem_ratio ?? 100,
+        loyalty_points_redeem_discount_percent: data.loyalty_points_redeem_discount_percent !== null ? parseFloat(data.loyalty_points_redeem_discount_percent) : 2,
       });
+    } else if (error) {
+      console.warn("Failed to fetch loyalty settings from DB, using defaults:", error.message);
+      // Fallback: fetch only auto_print_receipt
+      const { data: fallbackData } = await supabase
+        .from('stores')
+        .select('auto_print_receipt')
+        .eq('id', storeId)
+        .single();
+      
+      if (fallbackData) {
+        setStoreSettings({
+          auto_print_receipt: fallbackData.auto_print_receipt ?? true,
+          loyalty_points_earn_ratio: 100,
+          loyalty_points_redeem_ratio: 100,
+          loyalty_points_redeem_discount_percent: 2,
+        });
+      }
     }
   };
 
@@ -102,19 +125,37 @@ export default function SettingsPage() {
 
     setLoading(true);
     try {
+      // First try to update all settings (auto_print_receipt + loyalty columns)
       const { error } = await supabase
         .from('stores')
         .update({
           auto_print_receipt: storeSettings.auto_print_receipt,
+          loyalty_points_earn_ratio: parseInt(storeSettings.loyalty_points_earn_ratio.toString()) || 100,
+          loyalty_points_redeem_ratio: parseInt(storeSettings.loyalty_points_redeem_ratio.toString()) || 100,
+          loyalty_points_redeem_discount_percent: parseFloat(storeSettings.loyalty_points_redeem_discount_percent.toString()) || 2.00,
         })
         .eq('id', storeToUse);
 
-      if (error) throw error;
+      if (error) {
+        console.warn("Saving custom loyalty settings directly to DB failed (possibly columns don't exist yet):", error.message);
+        
+        // Fallback: save only auto_print_receipt
+        const { error: fallbackError } = await supabase
+          .from('stores')
+          .update({
+            auto_print_receipt: storeSettings.auto_print_receipt,
+          })
+          .eq('id', storeToUse);
+
+        if (fallbackError) throw fallbackError;
+        
+        toast.warning('Receipt settings saved. Loyalty settings require database migration to be saved to DB.');
+      } else {
+        toast.success('Store configuration and loyalty settings updated successfully');
+      }
       
       // Update global state if needed
       await fetchProfile(profile.id);
-      
-      toast.success('Store configuration updated');
     } catch (error: any) {
       toast.error(error.message || 'Failed to update store settings');
     } finally {
@@ -242,16 +283,75 @@ export default function SettingsPage() {
                         />
                       </div>
                     </div>
+
+                    {/* Loyalty Points Configuration Section */}
+                    <div className="pt-8 border-t border-gray-50 space-y-6">
+                      <div>
+                        <Label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1 block">Loyalty & Rewards CRM Settings</Label>
+                        <p className="text-[12px] text-gray-400 font-medium ml-1 mt-0.5">Customize earning rates and redemption discounts for all customers.</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Earning Ratio */}
+                        <div className="bg-[#f5f5f7] p-6 rounded-3xl space-y-3.5 border border-transparent hover:border-gray-200 hover:bg-white hover:ring-2 hover:ring-[#0071e3]/5 transition-all duration-300">
+                          <Label htmlFor="loyalty_earn" className="text-[11px] font-black text-gray-400 uppercase tracking-wider block">Points Earning Ratio</Label>
+                          <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[14px] font-black text-gray-400">₹</span>
+                            <Input 
+                              id="loyalty_earn"
+                              type="number"
+                              className="h-12 pl-8 bg-white border border-gray-100 rounded-xl focus:border-[#0071e3] transition-all font-bold text-[14px]"
+                              value={storeSettings.loyalty_points_earn_ratio}
+                              onChange={(e) => setStoreSettings({...storeSettings, loyalty_points_earn_ratio: parseInt(e.target.value) || 0})}
+                            />
+                          </div>
+                          <span className="text-[10px] text-gray-400 font-medium block">Amount spent to earn 1 loyalty point (e.g. 100 spent = 1 pt).</span>
+                        </div>
+
+                        {/* Redeem Ratio */}
+                        <div className="bg-[#f5f5f7] p-6 rounded-3xl space-y-3.5 border border-transparent hover:border-gray-200 hover:bg-white hover:ring-2 hover:ring-[#0071e3]/5 transition-all duration-300">
+                          <Label htmlFor="loyalty_redeem" className="text-[11px] font-black text-gray-400 uppercase tracking-wider block">Redeem Points Threshold</Label>
+                          <div className="relative">
+                            <Input 
+                              id="loyalty_redeem"
+                              type="number"
+                              className="h-12 bg-white border border-gray-100 rounded-xl focus:border-[#0071e3] transition-all font-bold text-[14px]"
+                              value={storeSettings.loyalty_points_redeem_ratio}
+                              onChange={(e) => setStoreSettings({...storeSettings, loyalty_points_redeem_ratio: parseInt(e.target.value) || 0})}
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-400">pts</span>
+                          </div>
+                          <span className="text-[10px] text-gray-400 font-medium block">Minimum points balance required to trigger redemption at checkout.</span>
+                        </div>
+
+                        {/* Discount Percent */}
+                        <div className="bg-[#f5f5f7] p-6 rounded-3xl space-y-3.5 border border-transparent hover:border-gray-200 hover:bg-white hover:ring-2 hover:ring-[#0071e3]/5 transition-all duration-300">
+                          <Label htmlFor="loyalty_discount" className="text-[11px] font-black text-gray-400 uppercase tracking-wider block">Redemption Discount</Label>
+                          <div className="relative">
+                            <Input 
+                              id="loyalty_discount"
+                              type="number"
+                              step="0.5"
+                              className="h-12 bg-white border border-gray-100 rounded-xl focus:border-[#0071e3] transition-all font-bold text-[14px]"
+                              value={storeSettings.loyalty_points_redeem_discount_percent}
+                              onChange={(e) => setStoreSettings({...storeSettings, loyalty_points_redeem_discount_percent: parseFloat(e.target.value) || 0})}
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[14px] font-black text-gray-400">%</span>
+                          </div>
+                          <span className="text-[10px] text-gray-400 font-medium block">Cart total discount percentage applied upon redemption (e.g. 2%).</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="pt-6 border-t border-gray-50 flex justify-end">
                     <Button 
                       type="submit"
                       disabled={loading}
-                      className="bg-[#635bff] text-white px-8 h-14 rounded-2xl font-bold shadow-xl shadow-indigo-500/20 hover:bg-[#534bb3] transition-all"
+                      className="bg-black text-white px-8 h-14 rounded-2xl font-bold shadow-xl shadow-black/10 hover:bg-gray-800 transition-all"
                     >
                       {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
-                      Update Payment Keys
+                      Save Store Settings
                     </Button>
                   </div>
                 </form>

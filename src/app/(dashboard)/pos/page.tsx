@@ -95,6 +95,8 @@ export default function POSPage() {
   const redeemPoints = useCartStore(state => state.redeemPoints);
   const setCustomer = useCartStore(state => state.setCustomer);
   const setRedeemPoints = useCartStore(state => state.setRedeemPoints);
+  const loyaltySettings = useCartStore(state => state.loyaltySettings);
+  const setLoyaltySettings = useCartStore(state => state.setLoyaltySettings);
 
   // Search & Register Dialog states
   const [assignOpen, setAssignOpen] = useState(false);
@@ -421,9 +423,31 @@ export default function POSPage() {
     }
   }, [historyOpen, customer]);
 
+  const fetchStoreSettings = async () => {
+    if (!storeToUse) return;
+    try {
+      const { data, error } = await supabase
+        .from('stores')
+        .select('loyalty_points_earn_ratio, loyalty_points_redeem_ratio, loyalty_points_redeem_discount_percent')
+        .eq('id', storeToUse)
+        .single();
+      
+      if (data) {
+        setLoyaltySettings({
+          earn_ratio: data.loyalty_points_earn_ratio ?? 100,
+          redeem_ratio: data.loyalty_points_redeem_ratio ?? 100,
+          discount_percent: data.loyalty_points_redeem_discount_percent !== null ? parseFloat(data.loyalty_points_redeem_discount_percent) : 2.00
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching store loyalty settings:', err);
+    }
+  };
+
   useEffect(() => {
     if (storeToUse) {
       fetchProducts();
+      fetchStoreSettings();
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -725,56 +749,68 @@ export default function POSPage() {
         </div>
 
         {/* Customer Identity Bar (Placed at Top) */}
-        <div className="px-6 py-3 border-b border-gray-50 bg-[#f5f5f7]/30 shrink-0">
+        <div className="px-6 py-3.5 border-b border-gray-50 bg-gradient-to-b from-[#f8f9fa] to-white shrink-0">
           {customer ? (
-            <div className="bg-white border border-gray-100 rounded-2xl p-3.5 space-y-3.5 shadow-sm transition-all duration-300">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-black text-black text-[13px]">{customer.full_name}</span>
-                    <Badge className="bg-[#0071e3]/10 text-[#0071e3] border-none font-bold text-[8px] h-3.5 px-1.5 py-0">
+            <div className="bg-white border border-gray-100 rounded-3xl p-4 space-y-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] group">
+              <div className="flex gap-3.5 items-center">
+                {/* Initials Avatar with smooth premium gradient */}
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#0071e3] to-[#00bbf9] flex items-center justify-center text-white text-[14px] font-black tracking-tight shadow-md shadow-blue-500/10 group-hover:scale-105 transition-transform duration-300 shrink-0">
+                  {customer.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                </div>
+                
+                {/* Customer Details */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-extrabold text-black text-[14px] truncate leading-none mb-0.5">{customer.full_name}</span>
+                    <Badge className="bg-[#0071e3]/10 hover:bg-[#0071e3]/15 text-[#0071e3] border-none font-black text-[9px] h-5 px-2 py-0 rounded-full select-none shrink-0">
                       {customer.loyalty_points} pts
                     </Badge>
                   </div>
-                  <p className="text-[10px] text-gray-400 font-bold mt-1">
+                  <p className="text-[10px] text-gray-400 font-bold mt-1 tracking-tight truncate">
                     {customer.phone || customer.email || 'No contact details'}
                   </p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 rounded-lg text-[#0071e3] hover:bg-[#0071e3]/10"
-                    onClick={() => setHistoryOpen(true)}
-                  >
-                    <History className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 rounded-lg text-rose-500 hover:bg-rose-50"
-                    onClick={() => { setCustomer(null); setRedeemPoints(false); }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
               </div>
 
-              {customer.loyalty_points >= 100 && (
-                <div className="flex items-center justify-between bg-gray-50 border border-gray-100 p-2 rounded-xl">
+              {/* Action Buttons styled like modern iOS controls */}
+              <div className="flex gap-2 pt-1 border-t border-gray-50">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 h-9 rounded-xl text-black border-gray-100 hover:border-[#0071e3] hover:text-[#0071e3] font-bold text-[11px] gap-1.5 bg-[#fbfbfd] transition-all"
+                  onClick={() => setHistoryOpen(true)}
+                >
+                  <History className="h-3.5 w-3.5" />
+                  History
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 w-9 rounded-xl text-rose-500 border-gray-100 hover:border-rose-100 hover:bg-rose-50/50 hover:text-rose-600 transition-all p-0"
+                  onClick={() => { setCustomer(null); setRedeemPoints(false); }}
+                >
+                  <UserMinus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+
+              {/* Dynamic Loyalty Redemption Toggle */}
+              {customer.loyalty_points >= loyaltySettings.redeem_ratio && (
+                <div className="flex items-center justify-between bg-gradient-to-r from-emerald-500/5 to-emerald-500/10 border border-emerald-500/10 p-3 rounded-2xl animate-in fade-in duration-300">
                   <div className="flex flex-col">
-                    <span className="text-[8px] font-black uppercase text-emerald-600 tracking-wider">Loyalty Reward</span>
-                    <span className="text-[9px] font-black text-gray-700">2% off for 100 points</span>
+                    <span className="text-[8px] font-black uppercase text-emerald-600 tracking-wider">Loyalty Reward Available</span>
+                    <span className="text-[10px] font-black text-gray-800 mt-0.5">
+                      {loyaltySettings.discount_percent}% off for {loyaltySettings.redeem_ratio} points
+                    </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setRedeemPoints(!redeemPoints)}
                     className={cn(
-                      "w-9 h-5 rounded-full p-0.5 transition-colors duration-200 outline-none flex items-center",
+                      "w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 outline-none flex items-center shadow-inner",
                       redeemPoints ? "bg-emerald-500 justify-end" : "bg-gray-200 justify-start"
                     )}
                   >
-                    <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                    <div className="w-4.5 h-4.5 rounded-full bg-white shadow-md transform transition-transform duration-200" />
                   </button>
                 </div>
               )}
@@ -782,7 +818,7 @@ export default function POSPage() {
           ) : (
             <Button
               variant="outline"
-              className="w-full text-gray-500 border-dashed border-gray-200 hover:border-[#0071e3] hover:text-[#0071e3] font-black text-[10px] h-10 rounded-2xl uppercase tracking-widest transition-all active:scale-95 bg-white"
+              className="w-full text-gray-500 border-dashed border-gray-200 hover:border-[#0071e3] hover:text-[#0071e3] font-black text-[10px] h-11 rounded-2xl uppercase tracking-widest transition-all active:scale-95 bg-white shadow-sm"
               onClick={() => setAssignOpen(true)}
             >
               <UserPlus className="mr-1.5 h-4 w-4" />

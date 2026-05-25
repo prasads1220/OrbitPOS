@@ -55,6 +55,8 @@ interface ReceiptData {
   pointsEarned?: number;
   pointsRedeemed?: number;
   pointsBalance?: number;
+  pointsDiscountPercent?: number;
+  pointsDiscountValue?: number;
 }
 
 export function CheckoutDialog({ 
@@ -84,6 +86,7 @@ export function CheckoutDialog({
   const { clearCart } = useCartStore();
   const customer = useCartStore(state => state.customer);
   const redeemPoints = useCartStore(state => state.redeemPoints);
+  const loyaltySettings = useCartStore(state => state.loyaltySettings);
   const [step, setStep] = useState<CheckoutStep>('selection');
   const [method, setMethod] = useState<'cash' | 'card'>('cash');
   const [cashTendered, setCashTendered] = useState<string>('');
@@ -131,10 +134,10 @@ export function CheckoutDialog({
     }
     setStep('processing');
     try {
-      const pointsEarned = customer ? Math.floor(total / 100) : 0;
-      const pointsRedeemed = customer && redeemPoints && customer.loyalty_points >= 100 ? 100 : 0;
+      const pointsEarned = customer ? Math.floor(total / loyaltySettings.earn_ratio) : 0;
+      const pointsRedeemed = customer && redeemPoints && customer.loyalty_points >= loyaltySettings.redeem_ratio ? loyaltySettings.redeem_ratio : 0;
 
-      const pointsDiscount = (customer && redeemPoints && customer.loyalty_points >= 100) ? (subtotal + tax - discount) * 0.02 : 0;
+      const pointsDiscount = (customer && redeemPoints && customer.loyalty_points >= loyaltySettings.redeem_ratio) ? (subtotal + tax - discount) * (loyaltySettings.discount_percent / 100) : 0;
       const finalDiscountAmount = discount + pointsDiscount;
 
       const { data: order, error: orderError } = await supabase
@@ -252,6 +255,8 @@ export function CheckoutDialog({
         customerEmail: customer ? customer.email || undefined : undefined,
         pointsEarned: pointsEarned,
         pointsRedeemed: pointsRedeemed,
+        pointsDiscountPercent: redeemPoints ? loyaltySettings.discount_percent : 0,
+        pointsDiscountValue: pointsDiscount,
         pointsBalance: customer ? (customer.loyalty_points - pointsRedeemed + pointsEarned) : 0
       });
 
@@ -452,8 +457,9 @@ export function CheckoutDialog({
     if (receiptData.pointsRedeemed && receiptData.pointsRedeemed > 0) {
       y += 7;
       doc.setTextColor(220, 50, 50);
-      doc.text('Loyalty Discount (2%):', 130, y);
-      const pointsDiscVal = (receiptData.subtotal + receiptData.tax - (receiptData.discountType === 'percentage' ? (receiptData.subtotal + receiptData.tax) * (receiptData.discount / 100) : receiptData.discount)) * 0.02;
+      const discountPct = receiptData.pointsDiscountPercent || 2;
+      doc.text(`Loyalty Discount (${discountPct}%):`, 130, y);
+      const pointsDiscVal = receiptData.pointsDiscountValue || ((receiptData.subtotal + receiptData.tax - (receiptData.discountType === 'percentage' ? (receiptData.subtotal + receiptData.tax) * (receiptData.discount / 100) : receiptData.discount)) * 0.02);
       doc.text(`-₹${pointsDiscVal.toFixed(2)}`, 190, y, { align: 'right' });
       doc.setTextColor(0, 0, 0);
     }
@@ -503,7 +509,12 @@ export function CheckoutDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(val) => {
+      if (!val && step === 'success') {
+        clearCart();
+      }
+      onOpenChange(val);
+    }}>
       <DialogContent className="sm:max-w-[520px] p-0 max-h-[90vh] overflow-y-auto rounded-[2.5rem] border-none shadow-2xl bg-white">
         
         <ReceiptPrinter receiptData={receiptData ? { ...receiptData, type: 'sale' } : null} />
