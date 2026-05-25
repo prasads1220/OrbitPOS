@@ -270,7 +270,9 @@ export default function StockTransferPage() {
             <Label className="text-[13px] font-bold text-gray-400 uppercase tracking-widest ml-1">Destination Store</Label>
             <Select value={targetStoreId} onValueChange={(val) => setTargetStoreId(val || '')}>
               <SelectTrigger className="h-14 bg-[#f5f5f7] border-transparent rounded-2xl font-bold">
-                <SelectValue placeholder="Select a store" />
+                <SelectValue placeholder="Select a store">
+                  {stores.find(s => s.id === targetStoreId)?.name || "Select a store"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="rounded-2xl border-gray-100 shadow-xl">
                 {stores.map(s => (
