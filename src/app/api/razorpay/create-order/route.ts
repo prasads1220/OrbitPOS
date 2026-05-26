@@ -29,7 +29,9 @@ export async function POST(req: NextRequest) {
     }
     
     if (!keyId || !keySecret) {
-      return NextResponse.json({ error: 'Razorpay API keys not configured' }, { status: 500 });
+      return NextResponse.json({ 
+        error: `Razorpay API keys not configured. (keyId: ${keyId ? 'present' : 'missing'}, keySecret: ${keySecret ? 'present' : 'missing'}). If you recently edited your .env.local file, please restart your dev server (npm run dev).`
+      }, { status: 500 });
     }
 
     const razorpay = new Razorpay({

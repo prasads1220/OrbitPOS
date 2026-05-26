@@ -27,7 +27,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (!keySecret) {
-      return NextResponse.json({ error: 'Razorpay secret key not configured' }, { status: 500 });
+      return NextResponse.json({ 
+        error: `Razorpay secret key not configured. If you recently edited your .env.local file, please restart your dev server (npm run dev).`
+      }, { status: 500 });
     }
 
     const body = razorpay_order_id + '|' + razorpay_payment_id;
