@@ -63,6 +63,11 @@ CREATE TABLE IF NOT EXISTS public.cash_drawer_logs (
   card_total DECIMAL(10,2) DEFAULT 0,
   upi_total DECIMAL(10,2) DEFAULT 0,
   order_count INTEGER DEFAULT 0,
+  refunds_total DECIMAL(10,2) DEFAULT 0,
+  discounts_total DECIMAL(10,2) DEFAULT 0,
+  items_count INTEGER DEFAULT 0,
+  first_sale_time TIMESTAMPTZ,
+  last_sale_time TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
