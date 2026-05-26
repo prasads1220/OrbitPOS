@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://orbitpossales.com
+
+# Sitemaps
+Sitemap: https://orbitpossales.com/sitemap.xml
