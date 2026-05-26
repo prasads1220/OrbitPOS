@@ -105,23 +105,28 @@ ALTER TABLE public.purchase_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.purchase_order_items ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies
+DROP POLICY IF EXISTS "Store admins manage vendors" ON public.vendors;
 CREATE POLICY "Store admins manage vendors" ON public.vendors FOR ALL USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND store_id = vendors.store_id AND role IN ('admin'))
 );
 
+DROP POLICY IF EXISTS "Store users view whatsapp_logs" ON public.whatsapp_logs;
 CREATE POLICY "Store users view whatsapp_logs" ON public.whatsapp_logs FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.orders o JOIN public.profiles p ON p.store_id = o.store_id WHERE o.id = whatsapp_logs.order_id AND p.id = auth.uid())
 );
 
+DROP POLICY IF EXISTS "Store admins and cashiers can manage cash_drawer_logs" ON public.cash_drawer_logs;
 CREATE POLICY "Store admins and cashiers can manage cash_drawer_logs"
 ON public.cash_drawer_logs FOR ALL USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND store_id = cash_drawer_logs.store_id AND role IN ('admin','cashier'))
 );
 
+DROP POLICY IF EXISTS "Admins manage purchase orders" ON public.purchase_orders;
 CREATE POLICY "Admins manage purchase orders" ON public.purchase_orders FOR ALL USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND store_id = purchase_orders.store_id AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "Admins manage purchase order items" ON public.purchase_order_items;
 CREATE POLICY "Admins manage purchase order items" ON public.purchase_order_items FOR ALL USING (
   EXISTS (
     SELECT 1 FROM public.purchase_orders po
