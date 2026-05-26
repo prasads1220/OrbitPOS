@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { jsPDF } from 'jspdf';
 import { 
   Banknote, 
   CheckCircle2, 
@@ -188,80 +187,126 @@ export default function CashDrawerPage() {
   };
 
   const printTillReport = (log: any, cashierProfile: any, storeName: string) => {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(22);
-    doc.text('ORBITPOS TILL REPORT', 105, 30, { align: 'center' });
-    
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(storeName.toUpperCase(), 105, 38, { align: 'center' });
-    doc.text('----------------------------------------------------', 105, 45, { align: 'center' });
-    
-    // Cashier details
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text('SHIFT CLOSING AUDIT METADATA:', 20, 56);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Cashier Name: ${cashierProfile?.full_name || 'N/A'}`, 20, 63);
-    doc.text(`Email: ${cashierProfile?.email || 'N/A'} | Role: ${cashierProfile?.role || 'Staff'}`, 20, 70);
-    doc.text(`Date Closed: ${format(new Date(log.created_at || new Date()), 'MMM dd, yyyy · hh:mm a')}`, 20, 77);
-    
-    const startStr = log.first_sale_time ? format(new Date(log.first_sale_time), 'hh:mm a') : 'N/A';
-    const endStr = log.last_sale_time ? format(new Date(log.last_sale_time), 'hh:mm a') : 'N/A';
-    doc.text(`Shift Timing: ${startStr} to ${endStr}`, 20, 84);
-    
-    // Transaction Audit
-    doc.setFont('helvetica', 'bold');
-    doc.text('SHIFT TRANSACTION TOTALS:', 20, 96);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Total Sales Completed: ${log.order_count}`, 20, 103);
-    doc.text(`Total Products/Items Sold: ${log.items_count || 0}`, 20, 110);
-    doc.text(`Total Refunds Deducted: -₹${(log.refunds_total || 0).toFixed(2)}`, 20, 117);
-    doc.text(`Total Discounts Credited: -₹${(log.discounts_total || 0).toFixed(2)}`, 20, 124);
-    
-    // Payment audit
-    doc.setFont('helvetica', 'bold');
-    doc.text('EXPECTED PAYMENT COUNTS:', 20, 136);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Expected Cash in Till: ₹${log.expected_cash.toFixed(2)}`, 20, 143);
-    doc.text(`Expected Card Sales: ₹${log.card_total.toFixed(2)}`, 20, 150);
-    doc.text(`Expected UPI Sales: ₹${log.upi_total.toFixed(2)}`, 20, 157);
-    doc.text(`Total Electronic (Card + UPI): ₹${(log.card_total + log.upi_total).toFixed(2)}`, 20, 164);
-    
-    doc.line(20, 172, 190, 172);
-    
-    // Balancing Ledger
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text('TILL BALANCING LEDGER:', 20, 182);
-    doc.text(`Expected Cash Sales: ₹${log.expected_cash.toFixed(2)}`, 20, 191);
-    doc.text(`Declared Cash Counter: ₹${log.declared_cash.toFixed(2)}`, 20, 200);
-    
+    const printWindow = window.open('', '_blank', 'width=350,height=600');
+    if (!printWindow) {
+      toast.error('Popup blocked. Please allow popups to print receipt reports.');
+      return;
+    }
+
     const diff = log.difference || 0;
     const isZero = Math.abs(diff) < 0.01;
     const isShort = diff < 0;
-    
-    doc.setFontSize(14);
-    if (isZero) {
-      doc.setTextColor(16, 124, 65); // Green
-      doc.text('TILL BALANCE STATUS: PERFECTLY BALANCED (₹0.00)', 20, 212);
-    } else if (isShort) {
-      doc.setTextColor(229, 62, 62); // Rose/Red
-      doc.text(`TILL BALANCE STATUS: SHORT BY -₹${Math.abs(diff).toFixed(2)}`, 20, 212);
-    } else {
-      doc.setTextColor(217, 119, 6); // Amber
-      doc.text(`TILL BALANCE STATUS: OVER BY +₹${diff.toFixed(2)}`, 20, 212);
-    }
-    
-    doc.setTextColor(0, 0, 0); // reset color
-    doc.setFontSize(10);
-    doc.text('----------------------------------------------------', 105, 230, { align: 'center' });
-    doc.text('OrbitPOS Till Closing Ledger · Shift Completed', 105, 238, { align: 'center' });
-    
-    doc.save(`Till_Close_Report_${log.date}_${log.id.slice(0, 8)}.pdf`);
+
+    const startStr = log.first_sale_time ? format(new Date(log.first_sale_time), 'hh:mm a') : 'N/A';
+    const endStr = log.last_sale_time ? format(new Date(log.last_sale_time), 'hh:mm a') : 'N/A';
+    const dateClosed = format(new Date(log.created_at || new Date()), 'MMM dd, yyyy · hh:mm a');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>OrbitPOS Till Report</title>
+          <style>
+            @media print {
+              body { margin: 0; padding: 0; background: white; }
+              #print-area { display: block !important; width: 80mm; padding: 4mm; margin: 0; background: white; font-family: monospace; }
+            }
+            body { font-family: monospace; padding: 10px; background: white; }
+            #print-area { width: 80mm; background: white; font-size: 11px; }
+            .text-center { text-align: center; }
+            .border-b { border-bottom: 1px solid #000; }
+            .pb-2 { padding-bottom: 8px; }
+            .mb-2 { margin-bottom: 8px; }
+            .pb-4 { padding-bottom: 16px; }
+            .mb-4 { margin-bottom: 16px; }
+            .py-1 { padding-top: 4px; padding-bottom: 4px; }
+            .border-y { border-top: 1px dashed #000; border-bottom: 1px dashed #000; }
+            .font-bold { font-weight: bold; }
+            .space-y-4 > * + * { margin-top: 16px; }
+            .space-y-1 > * + * { margin-top: 4px; }
+            .flex { display: flex; }
+            .justify-between { justify-content: space-between; }
+            .border-dashed { border-style: dashed; }
+            .pt-2 { padding-top: 8px; }
+            .border-t { border-top: 1px solid #000; }
+            .text-rose-600 { color: #e53e3e; }
+            .text-emerald-600 { color: #107c41; }
+            .text-amber-600 { color: #d97706; }
+            .text-[10px] { font-size: 10px; }
+            .text-[13px] { font-size: 13px; }
+            .text-lg { font-size: 14px; }
+          </style>
+        </head>
+        <body onload="window.print(); setTimeout(() => { window.close(); }, 500);">
+          <div id="print-area">
+            <div class="text-center border-b pb-4 mb-4">
+              <h1 style="font-size: 18px; font-weight: bold; margin: 0;">ORBITPOS</h1>
+              <p style="font-size: 9px; margin: 2px 0 0 0; opacity: 0.7;">TILL CLOSING AUDIT</p>
+              <p style="font-size: 10px; font-weight: bold; margin: 4px 0 0 0;">${storeName.toUpperCase()}</p>
+            </div>
+
+            <div class="text-center py-1 border-y border-dashed mb-4">
+              <p class="font-bold" style="font-size: 12px; margin: 0; letter-spacing: 1px;">*** TILL SHIFT CLOSED ***</p>
+            </div>
+
+            <div class="space-y-1 text-[10px] border-b pb-4 mb-4">
+              <div class="flex justify-between"><span>CASHIER:</span> <span class="font-bold">${cashierProfile?.full_name || 'N/A'}</span></div>
+              <div class="flex justify-between"><span>ROLE:</span> <span>${(cashierProfile?.role || 'Staff').toUpperCase()}</span></div>
+              <div class="flex justify-between"><span>DATE CLOSED:</span> <span>${dateClosed}</span></div>
+              <div class="flex justify-between"><span>SHIFT TIMING:</span> <span>${startStr} - ${endStr}</span></div>
+            </div>
+
+            <div class="space-y-1 text-[10px] border-b pb-4 mb-4">
+              <div class="flex justify-between font-bold" style="font-size: 11px; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 6px;">
+                <span>SHIFT SEGMENTS</span>
+                <span>METRICS</span>
+              </div>
+              <div class="flex justify-between"><span>ORDERS PROCESSED:</span> <span>${log.order_count}</span></div>
+              <div class="flex justify-between"><span>PRODUCTS/ITEMS SOLD:</span> <span>${log.items_count || 0}</span></div>
+              <div class="flex justify-between"><span>TOTAL REFUNDS DEDUCTED:</span> <span>-₹${(log.refunds_total || 0).toFixed(2)}</span></div>
+              <div class="flex justify-between"><span>TOTAL DISCOUNTS CREDITED:</span> <span>-₹${(log.discounts_total || 0).toFixed(2)}</span></div>
+            </div>
+
+            <div class="space-y-1 text-[10px] border-b pb-4 mb-4">
+              <div class="flex justify-between font-bold" style="font-size: 11px; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 6px;">
+                <span>PAYMENT METHOD</span>
+                <span>EXPECTED</span>
+              </div>
+              <div class="flex justify-between"><span>CASH SALES:</span> <span>₹${log.expected_cash.toFixed(2)}</span></div>
+              <div class="flex justify-between"><span>CARD SALES:</span> <span>₹${log.card_total.toFixed(2)}</span></div>
+              <div class="flex justify-between"><span>UPI SALES:</span> <span>₹${log.upi_total.toFixed(2)}</span></div>
+              <div class="flex justify-between font-bold" style="border-top: 1px dashed #ccc; margin-top: 4px; padding-top: 4px;">
+                <span>TOTAL ELECTRONIC:</span>
+                <span>₹${(log.card_total + log.upi_total).toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div class="space-y-1 pt-2">
+              <div class="flex justify-between font-bold" style="font-size: 12px;">
+                <span>EXPECTED DRAWER CASH:</span>
+                <span>₹${log.expected_cash.toFixed(2)}</span>
+              </div>
+              <div class="flex justify-between font-bold" style="font-size: 12px; margin-top: 4px;">
+                <span>DECLARED DRAWER CASH:</span>
+                <span>₹${log.declared_cash.toFixed(2)}</span>
+              </div>
+              
+              <div class="flex justify-between font-bold" style="font-size: 13px; border-top: 1px solid #000; margin-top: 8px; padding-top: 8px;">
+                <span>TILL STATUS:</span>
+                <span class="${isZero ? 'text-emerald-600' : isShort ? 'text-rose-600' : 'text-amber-600'}">
+                  ${isZero ? 'BALANCED' : isShort ? `-₹${Math.abs(diff).toFixed(2)} (SHORT)` : `+₹${diff.toFixed(2)} (OVER)`}
+                </span>
+              </div>
+            </div>
+
+            <div class="text-center pt-8 border-t border-dashed mt-8" style="font-size: 9px; opacity: 0.7;">
+              <p class="font-bold">OrbitPOS closing audit ledger</p>
+              <p class="italic">Shift Completed successfully.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -338,7 +383,7 @@ export default function CashDrawerPage() {
               <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto" />
               <h2 className="text-2xl font-black text-black">Shift Closed & Audited</h2>
               <p className="text-gray-400 font-medium max-w-md mx-auto">
-                Till closing records logged successfully. The audit report PDF has been printed. 
+                Till closing records logged successfully. The audit report POS thermal receipt has been printed. 
                 You can now start a new till closing sequence or continue POS checkouts.
               </p>
               <div className="pt-4 flex justify-center gap-3">
@@ -440,7 +485,7 @@ export default function CashDrawerPage() {
 
                   <Button type="submit" disabled={submitting} className="w-full h-14 bg-black hover:bg-gray-800 text-white font-black rounded-2xl text-[14px] shadow-lg shadow-black/10 transition-transform active:scale-[0.98]">
                     {submitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Banknote className="mr-2 h-5 w-5" />}
-                    Close Active Till & Print Audit PDF
+                    Close Active Till & Print POS Receipt
                   </Button>
                 </form>
               </div>

@@ -68,7 +68,7 @@ export default function ReportsPage() {
     totalProfit: 0,
     profitMargin: 0,
   });
-  const [timeRange, setTimeRange] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('weekly');
+  const [timeRange, setTimeRange] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
 
   const storeToUse = activeStoreId || profile?.store_id;
