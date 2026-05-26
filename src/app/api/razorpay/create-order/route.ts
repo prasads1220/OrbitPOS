@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
       
       if (dbError) {
         console.error("create-order: Database query error:", dbError);
+        return NextResponse.json({ 
+          error: `Database key lookup failed: ${dbError.message} (Code: ${dbError.code || 'N/A'}. Hint: Verify if the stores table columns have been successfully altered in your Supabase SQL editor).`
+        }, { status: 500 });
       } else {
         console.log("create-order: Loaded store keys from database:", {
           storeId,
@@ -40,7 +43,7 @@ export async function POST(req: NextRequest) {
     
     if (!keyId || !keySecret) {
       return NextResponse.json({ 
-        error: `Razorpay API keys not configured. (keyId: ${keyId ? 'present' : 'missing'}, keySecret: ${keySecret ? 'present' : 'missing'}). If you recently edited your .env.local file, please restart your dev server (npm run dev).`
+        error: `Razorpay API keys not configured. Please log in as an Admin, navigate to Settings > Store Config, scroll down to the 'Razorpay Merchant Gateway' card, enter your Key ID and Secret, and click 'Save Store Settings'.`
       }, { status: 500 });
     }
 
