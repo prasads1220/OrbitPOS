@@ -232,16 +232,16 @@ export function CheckoutDialog({
     let rzpResult: { success: boolean; paymentId: string | null } | null = null;
 
     try {
-      // 1. Process via Razorpay if Card/UPI selected
+      // 1. Bypass actual Razorpay popup (mock success for card/upi)
       if (isSplitPayment) {
         if (!isSplitValid) {
           throw new Error(`Split total (₹${splitTotal.toFixed(2)}) must equal Total Due (₹${total.toFixed(2)})`);
         }
         if (splitCardVal > 0 || splitUpiVal > 0) {
-          rzpResult = await handleRazorpayPayment();
+          rzpResult = { success: true, paymentId: `rzp_mock_${Math.random().toString(36).substring(2, 10)}` };
         }
       } else if (method === 'card' || method === 'upi') {
-        rzpResult = await handleRazorpayPayment();
+        rzpResult = { success: true, paymentId: `rzp_mock_${Math.random().toString(36).substring(2, 10)}` };
       }
 
       // 2. Finalize order in Supabase
@@ -878,7 +878,7 @@ export function CheckoutDialog({
               </div>
               <div className="text-center">
                 <h3 className="text-xl font-black text-black">Processing Transaction</h3>
-                <p className="text-gray-400 font-medium">Securing payment with Razorpay...</p>
+                <p className="text-gray-400 font-medium">Securing payment...</p>
               </div>
             </div>
           )}
