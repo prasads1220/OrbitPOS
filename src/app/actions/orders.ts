@@ -121,20 +121,7 @@ export async function refundOrder(orderId: string, itemsToRefund: { id: string, 
 
       if (itemUpdateError) throw itemUpdateError;
 
-      // Restore inventory
-      const { data: product } = await supabase.from('products').select('stock_quantity').eq('id', orderItem.product_id).single();
-      await supabase
-        .from('products')
-        .update({ stock_quantity: (product?.stock_quantity || 0) + itemRefund.quantity })
-        .eq('id', orderItem.product_id);
-
-      // Log inventory change
-      await supabase.from('inventory_logs').insert({
-        product_id: orderItem.product_id,
-        store_id: order.store_id,
-        change_amount: itemRefund.quantity,
-        reason: 'refund'
-      });
+      // Automatic inventory restoration removed as per new returns workflow
 
       totalRefundAmount += orderItem.unit_price * itemRefund.quantity;
     }
@@ -229,54 +216,7 @@ export async function exchangeOrder(
 
       if (itemUpdateError) throw itemUpdateError;
 
-      // Restore inventory
-      if (orderItem.variant_id) {
-        const { data: variant } = await supabase
-          .from('product_variants')
-          .select('stock_quantity')
-          .eq('id', orderItem.variant_id)
-          .single();
-
-        await supabase
-          .from('product_variants')
-          .update({ stock_quantity: (variant?.stock_quantity || 0) + itemRefund.quantity })
-          .eq('id', orderItem.variant_id);
-
-        if (orderItem.serial_number) {
-          await supabase
-            .from('serialized_inventory')
-            .update({ status: 'in_stock', order_id: null })
-            .eq('variant_id', orderItem.variant_id)
-            .eq('serial_number', orderItem.serial_number);
-        }
-      } else {
-        const { data: product } = await supabase
-          .from('products')
-          .select('stock_quantity')
-          .eq('id', orderItem.product_id)
-          .single();
-
-        await supabase
-          .from('products')
-          .update({ stock_quantity: (product?.stock_quantity || 0) + itemRefund.quantity })
-          .eq('id', orderItem.product_id);
-
-        if (orderItem.serial_number) {
-          await supabase
-            .from('serialized_inventory')
-            .update({ status: 'in_stock', order_id: null })
-            .eq('product_id', orderItem.product_id)
-            .eq('serial_number', orderItem.serial_number);
-        }
-      }
-
-      // Log inventory change
-      await supabase.from('inventory_logs').insert({
-        product_id: orderItem.product_id,
-        store_id: order.store_id,
-        change_amount: itemRefund.quantity,
-        reason: 'return'
-      });
+      // Automatic inventory restoration removed as per new returns workflow
 
       totalRefundAmount += orderItem.unit_price * itemRefund.quantity;
     }
