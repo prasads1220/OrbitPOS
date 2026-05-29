@@ -343,13 +343,13 @@ export async function exchangeOrder(
         reason: 'sale'
       });
 
-      // Prepare order item record
       newItemsToInsert.push({
         order_id: order.id,
         product_id: newItem.product_id,
         quantity: newItem.quantity,
         unit_price: newItem.unit_price,
         total_price: newItem.unit_price * newItem.quantity,
+        store_id: order.store_id, // Pass store_id to avoid foreign key constraints
         variant_id: newItem.variant_id || null,
         serial_number: newItem.serial_number || null,
         refunded_quantity: 0
