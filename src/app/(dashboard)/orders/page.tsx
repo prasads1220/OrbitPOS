@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   ClipboardList, 
@@ -59,6 +59,7 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [receiptData, setReceiptData] = useState<any | null>(null);
+  const printWindowRef = useRef<Window | null>(null);
   
   const [isRefunding, setIsRefunding] = useState(false);
   const [refundItems, setRefundItems] = useState<{id: string, quantity: number, max: number}[]>([]);
@@ -259,14 +260,130 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (receiptData) {
-      setTimeout(() => {
-        handlePrint();
+      const timer = setTimeout(() => {
+        const printContent = document.getElementById('printable-receipt');
+        if (!printContent) {
+          if (printWindowRef.current) {
+            printWindowRef.current.close();
+            printWindowRef.current = null;
+          }
+          return;
+        }
+
+        let printWindow = printWindowRef.current;
+
+        if (!printWindow || printWindow.closed) {
+          printWindow = window.open('', '_blank', 'width=800,height=600');
+        }
+
+        if (!printWindow) {
+          toast.error('Please allow popups to print receipts');
+          setReceiptData(null);
+          return;
+        }
+
+        // Write the receipt content with specific thermal styles (MATCHES POS EXACTLY)
+        printWindow.document.open();
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>OrbitPOS Receipt</title>
+              <style>
+                @page {
+                  size: 80mm auto;
+                  margin: 0;
+                }
+                body {
+                  margin: 0;
+                  padding: 0;
+                  font-family: monospace;
+                  background: white;
+                }
+                #printable-receipt {
+                  display: block !important;
+                  width: 80mm;
+                  padding: 5mm;
+                  margin: 0;
+                  background: white;
+                }
+                * {
+                  box-sizing: border-box;
+                  color: black !important;
+                  font-family: monospace !important;
+                }
+                .space-y-4 > * + * { margin-top: 1rem; }
+                .space-y-2 > * + * { margin-top: 0.5rem; }
+                .space-y-1 > * + * { margin-top: 0.25rem; }
+                .flex { display: flex; }
+                .justify-between { justify-content: space-between; }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .font-bold { font-weight: bold; }
+                .uppercase { text-transform: uppercase; }
+                .border-t { border-top: 1px solid black; }
+                .border-b { border-bottom: 1px solid black; }
+                .border-y { border-top: 1px solid black; border-bottom: 1px solid black; }
+                .border-dashed { border-style: dashed; }
+                .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+                .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+                .pt-2 { padding-top: 0.5rem; }
+                .pt-8 { padding-top: 2rem; }
+                .pb-4 { padding-bottom: 1rem; }
+                .mb-4 { margin-bottom: 1rem; }
+                .mb-8 { margin-bottom: 2rem; }
+                .mt-1 { margin-top: 0.25rem; }
+                .mt-8 { margin-top: 2rem; }
+                .text-xl { font-size: 1.25rem; }
+                .text-lg { font-size: 1.125rem; }
+                .text-[14px] { font-size: 14px; }
+                .text-[12px] { font-size: 12px; }
+                .text-[10px] { font-size: 10px; }
+                .text-[9px] { font-size: 9px; }
+                .font-mono { font-family: monospace; }
+                .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                .w-1/2 { width: 50%; }
+                .w-1/4 { width: 25%; }
+                .opacity-70 { opacity: 0.7; }
+                .opacity-80 { opacity: 0.8; }
+                .italic { font-style: italic; }
+                .tracking-widest { letter-spacing: 0.1em; }
+                .tracking-tight { letter-spacing: -0.025em; }
+              </style>
+            </head>
+            <body>
+              <div id="printable-receipt">
+                ${printContent.innerHTML}
+              </div>
+              <script>
+                window.onload = () => {
+                  window.print();
+                  setTimeout(() => { window.close(); }, 500);
+                };
+              </script>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+
+        // Clear refs and state
+        printWindowRef.current = null;
         setReceiptData(null);
-      }, 500);
+      }, 300);
+
+      return () => clearTimeout(timer);
     }
   }, [receiptData]);
 
   const handleReprint = (order: any) => {
+    // Open the blank print window immediately to bypass popup blockers
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) {
+      toast.error('Please allow popups to reprint receipts');
+      return;
+    }
+    printWindowRef.current = printWindow;
+
     const isRefunded = order.payment_status === 'refunded' || order.payment_status === 'partially_refunded';
     const isExchanged = order.payment_status === 'exchanged';
 
