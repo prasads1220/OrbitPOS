@@ -66,7 +66,7 @@ export default function OrdersPage() {
   const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
 
   // Swap / Exchange State Variables
-  const [refundMode, setRefundMode] = useState<'none' | 'choose' | 'refund' | 'swap'>('none');
+  const [refundMode, setRefundMode] = useState<'none' | 'choose' | 'refund' | 'swap' | 'success'>('none');
   const [exchangeNewItems, setExchangeNewItems] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [searchNewItem, setSearchNewItem] = useState('');
@@ -740,8 +740,7 @@ export default function OrdersPage() {
           : 0
       });
 
-      setSelectedOrder(null);
-      setExchangeNewItems([]);
+      setRefundMode('success');
       fetchOrders();
     } else {
       toast.error(res.error || 'Exchange / Swap failed');
@@ -1191,6 +1190,71 @@ export default function OrdersPage() {
                       {isSubmittingRefund ? 'Processing...' : 'Confirm Exchange'}
                     </Button>
                   </div>
+                </div>
+              </div>
+            ) : refundMode === 'success' ? (
+              <div className="space-y-6 text-center py-4">
+                <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-2 animate-pulse">
+                  <ShoppingBag className="h-10 w-10 text-emerald-500" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-xl font-black text-black">Exchange Completed!</h3>
+                  <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider">Order #{selectedOrder?.id?.slice(0, 8)}</p>
+                </div>
+
+                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 text-left space-y-2.5 text-[12px]">
+                  <p className="flex justify-between font-bold text-gray-500">
+                    <span>Transaction Type:</span>
+                    <span className="text-black font-black uppercase">Swap / Exchange</span>
+                  </p>
+                  <p className="flex justify-between font-bold text-gray-500">
+                    <span>Net Difference:</span>
+                    <span className={cn("font-black", (receiptData?.netDifference || 0) >= 0 ? "text-emerald-600" : "text-rose-500")}>
+                      {(receiptData?.netDifference || 0) >= 0 ? '+' : '-'}₹{Math.abs(receiptData?.netDifference || 0).toFixed(2)}
+                    </span>
+                  </p>
+                  <p className="flex justify-between font-bold text-gray-500">
+                    <span>Settle Via:</span>
+                    <span className="text-black font-black uppercase">{receiptData?.method}</span>
+                  </p>
+                  {selectedOrder?.customer && (
+                    <div className="border-t border-dashed border-gray-200 pt-2.5 mt-2.5 space-y-1">
+                      <p className="flex justify-between text-gray-400 font-bold">
+                        <span>Customer:</span>
+                        <span className="text-black font-black">{selectedOrder.customer.full_name}</span>
+                      </p>
+                      <p className="flex justify-between text-gray-400 font-bold">
+                        <span>Points Balance:</span>
+                        <span className="text-[#0071e3] font-black">{receiptData?.pointsBalance || 0} pts</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="h-14 rounded-2xl font-black cursor-pointer border-gray-200" 
+                    onClick={() => {
+                      setSelectedOrder(null);
+                      setExchangeNewItems([]);
+                      setRefundMode('none');
+                      setReceiptData(null);
+                      fetchOrders();
+                    }}
+                  >
+                    Done
+                  </Button>
+                  <Button 
+                    type="button" 
+                    className="h-14 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white font-black cursor-pointer flex gap-2 items-center justify-center" 
+                    onClick={() => {
+                      handlePrint();
+                    }}
+                  >
+                    <Printer className="h-5 w-5" /> Print Receipt
+                  </Button>
                 </div>
               </div>
             ) : refundMode === 'refund' ? (
