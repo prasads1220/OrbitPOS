@@ -246,10 +246,9 @@ export default function OrdersPage() {
             ${printContent.innerHTML}
           </div>
           <script>
-            window.onload = () => {
-              window.print();
-              setTimeout(() => { window.close(); }, 500);
-            };
+            // Print immediately without waiting for load event
+            window.print();
+            setTimeout(() => { window.close(); }, 500);
           </script>
         </body>
       </html>
@@ -283,7 +282,6 @@ export default function OrdersPage() {
         }
 
         // Write the receipt content with specific thermal styles (MATCHES POS EXACTLY)
-        printWindow.document.open();
         printWindow.document.write(`
           <!DOCTYPE html>
           <html>
@@ -356,10 +354,9 @@ export default function OrdersPage() {
                 ${printContent.innerHTML}
               </div>
               <script>
-                window.onload = () => {
-                  window.print();
-                  setTimeout(() => { window.close(); }, 500);
-                };
+                // Print immediately without waiting for load event
+                window.print();
+                setTimeout(() => { window.close(); }, 500);
               </script>
             </body>
           </html>
@@ -368,12 +365,14 @@ export default function OrdersPage() {
 
         // Clear refs and state
         printWindowRef.current = null;
-        setReceiptData(null);
+        if (refundMode !== 'success') {
+          setReceiptData(null);
+        }
       }, 300);
 
       return () => clearTimeout(timer);
     }
-  }, [receiptData]);
+  }, [receiptData, refundMode]);
 
   const handleReprint = (order: any) => {
     // Open the blank print window immediately to bypass popup blockers
