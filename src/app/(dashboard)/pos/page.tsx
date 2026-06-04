@@ -27,7 +27,8 @@ import {
   Printer,
   ArrowRight,
   UserMinus,
-  Pause
+  Pause,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -163,6 +164,7 @@ export default function POSPage() {
 
   // New Customer Form State
   const [newName, setNewName] = useState('');
+  const [newPhoneCountryCode, setNewPhoneCountryCode] = useState('+91');
   const [newPhone, setNewPhone] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newDOB, setNewDOB] = useState('');
@@ -263,11 +265,12 @@ export default function POSPage() {
     }
     setSubmittingCust(true);
     try {
+      const fullPhone = newPhone.trim() ? newPhoneCountryCode + newPhone.trim() : null;
       const { data, error } = await supabase
         .from('customers')
         .insert({
           full_name: newName,
-          phone: newPhone || null,
+          phone: fullPhone,
           email: newEmail || null,
           date_of_birth: newDOB || null,
           address: newAddress || null,
@@ -1362,8 +1365,20 @@ export default function POSPage() {
                   required
                 />
                 <div className="flex bg-gray-50 rounded-xl overflow-hidden focus-within:bg-white focus-within:ring-2 focus-within:ring-black/5 border border-transparent focus-within:border-gray-200 transition-all">
-                  <div className="flex items-center justify-center px-4 bg-gray-100/50 border-r border-gray-100 text-gray-500 font-bold text-[13px]">
-                    +91
+                  <div className="flex items-center bg-gray-100/50 border-r border-gray-100 relative">
+                    <select
+                      className="appearance-none bg-transparent pl-4 pr-7 py-3 text-gray-500 font-bold text-[13px] outline-none cursor-pointer"
+                      value={newPhoneCountryCode}
+                      onChange={(e) => setNewPhoneCountryCode(e.target.value)}
+                    >
+                      <option value="+1">+1 (US/CA)</option>
+                      <option value="+44">+44 (UK)</option>
+                      <option value="+61">+61 (AU)</option>
+                      <option value="+91">+91 (IN)</option>
+                      <option value="+971">+971 (AE)</option>
+                      <option value="+65">+65 (SG)</option>
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
                   </div>
                   <Input
                     placeholder="Mobile Number"

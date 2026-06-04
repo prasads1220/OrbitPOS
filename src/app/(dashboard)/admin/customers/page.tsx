@@ -53,6 +53,9 @@ export default function CustomersPage() {
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
+
   const storeToUse = activeStoreId || profile?.store_id;
 
   useEffect(() => {
@@ -334,11 +337,14 @@ export default function CustomersPage() {
     });
   };
 
-  const filtered = search.trim().length === 0 ? [] : customers.filter(c =>
+  const filtered = search.trim().length === 0 ? customers : customers.filter(c =>
     (c.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
     (c.email || '').toLowerCase().includes(search.toLowerCase()) ||
     (c.phone || '').toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginatedCustomers = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const totalSpent = customerOrders.reduce((acc, o) => acc + (o.total_amount || 0), 0);
   const totalVisits = customerOrders.length;
@@ -402,7 +408,10 @@ export default function CustomersPage() {
           placeholder="Search by name, email, or phone..."
           className="pl-12 h-12 bg-white border-gray-100 rounded-2xl shadow-sm font-medium"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setCurrentPage(1);
+          }}
         />
       </div>
 
@@ -430,12 +439,12 @@ export default function CustomersPage() {
                 <TableCell colSpan={5} className="text-center py-16">
                   <Users className="h-12 w-12 mx-auto mb-3 text-gray-200" />
                   <p className="text-gray-400 font-medium">
-                    {search.trim() === '' ? 'Search for a customer by name, email, or phone' : 'No customers found'}
+                    No customers found matching your search.
                   </p>
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((c) => (
+              paginatedCustomers.map((c) => (
                 <TableRow key={c.id} className="border-gray-50 hover:bg-gray-50/50 cursor-pointer" onClick={() => handleViewCustomer(c)}>
                   <TableCell className="pl-8">
                     <div className="flex items-center gap-3">
@@ -476,6 +485,34 @@ export default function CustomersPage() {
             )}
           </TableBody>
         </Table>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+            <p className="text-sm text-gray-500 font-medium">
+              Showing <span className="font-bold text-black">{filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</span> to <span className="font-bold text-black">{Math.min(currentPage * pageSize, filtered.length)}</span> of <span className="font-bold text-black">{filtered.length}</span> customers
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="rounded-xl h-9 font-bold"
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="rounded-xl h-9 font-bold"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Dialog open={!!selectedCustomer} onOpenChange={(open) => !open && handleCloseCustomerModal()}>
