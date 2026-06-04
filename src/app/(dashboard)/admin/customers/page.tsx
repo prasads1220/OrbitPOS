@@ -149,6 +149,97 @@ export default function CustomersPage() {
     fetchCustomerOrders(customer.id);
   };
 
+  useEffect(() => {
+    if (receiptOrder) {
+      const timer = setTimeout(() => {
+        executePrint();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [receiptOrder]);
+
+  const executePrint = () => {
+    const printContent = document.getElementById('printable-receipt');
+    if (!printContent) return;
+
+    let iframe = document.getElementById('receipt-print-iframe') as HTMLIFrameElement;
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'receipt-print-iframe';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+    }
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!iframeDoc) return;
+
+    iframeDoc.open();
+    iframeDoc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>OrbitPOS Receipt</title>
+          <style>
+            body { margin: 0; padding: 0; font-family: monospace; background: white; }
+            #printable-receipt { display: block !important; width: 80mm; padding: 5mm; margin: 0; background: white; }
+            * { box-sizing: border-box; color: black !important; font-family: monospace !important; text-align: left; }
+            .space-y-4 > * + * { margin-top: 1rem; }
+            .space-y-2 > * + * { margin-top: 0.5rem; }
+            .space-y-1 > * + * { margin-top: 0.25rem; }
+            .flex { display: flex; }
+            .justify-between { justify-content: space-between; }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            .font-bold { font-weight: bold; }
+            .uppercase { text-transform: uppercase; }
+            .border-t { border-top: 1px dashed black; }
+            .border-b { border-bottom: 1px dashed black; }
+            .border-y { border-top: 1px dashed black; border-bottom: 1px dashed black; }
+            .border-dashed { border-style: dashed; }
+            .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+            .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+            .pt-2 { padding-top: 0.5rem; }
+            .pt-8 { padding-top: 2rem; }
+            .pb-4 { padding-bottom: 1rem; }
+            .mb-4 { margin-bottom: 1rem; }
+            .mb-8 { margin-bottom: 2rem; }
+            .mt-1 { margin-top: 0.25rem; }
+            .mt-8 { margin-top: 2rem; }
+            .text-xl { font-size: 1.25rem; }
+            .text-[14px] { font-size: 14px; }
+            .text-[12px] { font-size: 12px; }
+            .text-[10px] { font-size: 10px; }
+            .text-[9px] { font-size: 9px; }
+            .font-mono { font-family: monospace; }
+            .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .w-1\\/2 { width: 50%; }
+            .w-1\\/4 { width: 25%; }
+            .opacity-70 { opacity: 0.7; }
+            .opacity-80 { opacity: 0.8; }
+            .italic { font-style: italic; }
+            .tracking-widest { letter-spacing: 0.1em; }
+          </style>
+        </head>
+        <body>
+          <div id="printable-receipt">
+            ${printContent.innerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    iframeDoc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    }, 150);
+  };
+
   const handlePrintReceipt = (order: any) => {
     const isRefunded = order.payment_status === 'refunded' || order.payment_status === 'partially_refunded';
     const isSwap = order.payment_status === 'exchanged';
@@ -184,108 +275,9 @@ export default function CustomersPage() {
       pointsRedeemed: order.points_redeemed || 0,
       pointsBalance: selectedCustomer?.loyalty_points || 0
     });
-
-    setTimeout(() => {
-      const printContent = document.getElementById('printable-receipt');
-      if (!printContent) return;
-
-      let iframe = document.getElementById('receipt-print-iframe') as HTMLIFrameElement;
-      if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'receipt-print-iframe';
-        iframe.style.position = 'fixed';
-        iframe.style.right = '0';
-        iframe.style.bottom = '0';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = '0';
-        document.body.appendChild(iframe);
-      }
-
-      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (!iframeDoc) return;
-
-      iframeDoc.open();
-      iframeDoc.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>OrbitPOS Receipt</title>
-            <style>
-              body {
-                margin: 0;
-                padding: 0;
-                font-family: monospace;
-                background: white;
-              }
-              #printable-receipt {
-                display: block !important;
-                width: 80mm;
-                padding: 5mm;
-                margin: 0;
-                background: white;
-              }
-              * {
-                box-sizing: border-box;
-                color: black !important;
-                font-family: monospace !important;
-              }
-              .space-y-4 > * + * { margin-top: 1rem; }
-              .space-y-2 > * + * { margin-top: 0.5rem; }
-              .space-y-1 > * + * { margin-top: 0.25rem; }
-              .flex { display: flex; }
-              .justify-between { justify-content: space-between; }
-              .text-center { text-align: center; }
-              .text-right { text-align: right; }
-              .font-bold { font-weight: bold; }
-              .uppercase { text-transform: uppercase; }
-              .border-t { border-top: 1px solid black; }
-              .border-b { border-bottom: 1px solid black; }
-              .border-y { border-top: 1px solid black; border-bottom: 1px solid black; }
-              .border-dashed { border-style: dashed; }
-              .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-              .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-              .pt-2 { padding-top: 0.5rem; }
-              .pt-8 { padding-top: 2rem; }
-              .pb-4 { padding-bottom: 1rem; }
-              .mb-4 { margin-bottom: 1rem; }
-              .mb-8 { margin-bottom: 2rem; }
-              .mt-1 { margin-top: 0.25rem; }
-              .mt-8 { margin-top: 2rem; }
-              .text-xl { font-size: 1.25rem; }
-              .text-lg { font-size: 1.125rem; }
-              .text-[14px] { font-size: 14px; }
-              .text-[12px] { font-size: 12px; }
-              .text-[10px] { font-size: 10px; }
-              .text-[9px] { font-size: 9px; }
-              .font-mono { font-family: monospace; }
-              .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-              .w-1\\/2 { width: 50%; }
-              .w-1\\/4 { width: 25%; }
-              .opacity-70 { opacity: 0.7; }
-              .opacity-80 { opacity: 0.8; }
-              .italic { font-style: italic; }
-              .tracking-widest { letter-spacing: 0.1em; }
-              .tracking-tight { letter-spacing: -0.025em; }
-            </style>
-          </head>
-          <body>
-            <div id="printable-receipt">
-              ${printContent.innerHTML}
-            </div>
-          </body>
-        </html>
-      `);
-      iframeDoc.close();
-
-      setTimeout(() => {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-      }, 150);
-    }, 100);
   };
 
-  const filtered = customers.filter(c =>
+  const filtered = search.trim().length === 0 ? [] : customers.filter(c =>
     (c.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
     (c.email || '').toLowerCase().includes(search.toLowerCase()) ||
     (c.phone || '').toLowerCase().includes(search.toLowerCase())
@@ -373,7 +365,9 @@ export default function CustomersPage() {
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-16">
                   <Users className="h-12 w-12 mx-auto mb-3 text-gray-200" />
-                  <p className="text-gray-400 font-medium">No customers found</p>
+                  <p className="text-gray-400 font-medium">
+                    {search.trim() === '' ? 'Search for a customer by name, email, or phone' : 'No customers found'}
+                  </p>
                 </TableCell>
               </TableRow>
             ) : (
