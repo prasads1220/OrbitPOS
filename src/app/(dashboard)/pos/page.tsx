@@ -63,6 +63,7 @@ export default function POSPage() {
   const [loading, setLoading] = useState(true);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [search, setSearch] = useState('');
   
   // Categories State
   const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
