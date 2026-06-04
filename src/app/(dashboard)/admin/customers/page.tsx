@@ -280,7 +280,7 @@ export default function CustomersPage() {
 
       <Dialog open={!!selectedCustomer} onOpenChange={(open) => !open && setSelectedCustomer(null)}>
         <DialogContent className="sm:max-w-3xl w-full p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
-          <div className="bg-gradient-to-b from-gray-50 to-white">
+          <div className="bg-gradient-to-b from-gray-50 to-white max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="p-8 border-b border-gray-100 flex items-start justify-between">
               <div className="flex items-center gap-5">
                 <div className="w-20 h-20 rounded-[1.5rem] bg-black text-white flex items-center justify-center font-black text-3xl shadow-lg">
