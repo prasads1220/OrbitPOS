@@ -43,6 +43,7 @@ function createSafeQueryBuilder(table: string) {
     lte(col: string, val: any) { _filters.push({ column: col, op: 'lte', value: val }); return chain; },
     in(col: string, vals: any[]) { _filters.push({ column: col, op: 'in', value: vals }); return chain; },
     is(col: string, val: any) { _filters.push({ column: col, op: 'is', value: val }); return chain; },
+    ilike(col: string, val: any) { _filters.push({ column: col, op: 'ilike', value: val }); return chain; },
     filter(col: string, op: string, val: any) { _filters.push({ column: col, op: 'filter', value: op, value2: val }); return chain; },
     or(val: string) { _filters.push({ op: 'or', value: val }); return chain; },
     order(col: string, opts?: { ascending?: boolean }) { _order = { column: col, ascending: opts?.ascending }; return chain; },

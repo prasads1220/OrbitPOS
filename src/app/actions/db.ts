@@ -12,7 +12,7 @@ export async function serverQuery(
   table: string,
   options?: {
     select?: string;
-    filters?: { column?: string; op: 'eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte' | 'in' | 'is' | 'filter' | 'or'; value: any; value2?: any }[];
+    filters?: { column?: string; op: 'eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte' | 'in' | 'is' | 'filter' | 'or' | 'ilike'; value: any; value2?: any }[];
     order?: { column: string; ascending?: boolean };
     limit?: number;
     range?: [number, number];
