@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import { Bell, Search, Settings, Menu, Package, ArrowRight, Send, Store } from 'lucide-react';
+import { GlobalSearch } from './global-search';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -228,13 +229,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           <Menu className="h-5 w-5" />
         </Button>
         <div className="hidden md:flex items-center flex-1 max-w-md">
-          <div className="relative w-full group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-[#0071e3] transition-colors" />
-            <Input 
-              placeholder="Search products, orders, or customers..." 
-              className="pl-11 h-11 bg-white border-gray-100 rounded-2xl focus:ring-2 focus:ring-gray-100 font-medium text-[14px]"
-            />
-          </div>
+          <GlobalSearch />
         </div>
       </div>
 
