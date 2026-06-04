@@ -148,7 +148,7 @@ export default function ProductsPage() {
     setLoading(true);
     const { data } = await supabase
       .from('products')
-      .select('*')
+      .select('*, categories(name)')
       .eq('store_id', storeToUse)
       .order('created_at', { ascending: false });
 
@@ -163,6 +163,7 @@ export default function ProductsPage() {
     (p.brand_name || '').toLowerCase().includes(search.toLowerCase()) ||
     ((p as any).model || '').toLowerCase().includes(search.toLowerCase()) ||
     ((p as any).color || '').toLowerCase().includes(search.toLowerCase()) ||
+    ((p as any).categories?.name || '').toLowerCase().includes(search.toLowerCase()) ||
     (p.barcode || '').includes(search)
   );
 
@@ -321,7 +322,7 @@ export default function ProductsPage() {
               <TableHead className="font-bold text-black pl-8">Item</TableHead>
               <TableHead className="font-bold text-black">SKU</TableHead>
               <TableHead className="font-bold text-black">Vendor/Brand</TableHead>
-              <TableHead className="font-bold text-black">Type</TableHead>
+              <TableHead className="font-bold text-black">Category</TableHead>
               <TableHead className="font-bold text-black text-right">Price</TableHead>
               <TableHead className="font-bold text-black text-right">Stock</TableHead>
               <TableHead className="font-bold text-black">Status</TableHead>
@@ -387,11 +388,8 @@ export default function ProductsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={cn(
-                      "font-bold uppercase text-[10px]",
-                      product.product_type === 'gadget' ? "bg-purple-50 text-purple-600 border-purple-100" : "bg-blue-50 text-blue-600 border-blue-100"
-                    )}>
-                      {product.product_type || 'non-gadget'}
+                    <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 font-bold uppercase text-[10px]">
+                      {(product as any).categories?.name || 'Uncategorized'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-black text-black text-lg">

@@ -122,6 +122,7 @@ export function EditProductDialog({
     price: '0',
     barcode: '',
     stock_quantity: '0',
+    category_name: '',
   });
 
   // Autocomplete suggestions
@@ -129,6 +130,7 @@ export function EditProductDialog({
   const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
   const [vendorSuggestions, setVendorSuggestions] = useState<string[]>([]);
   const [nameSuggestions, setNameSuggestions] = useState<string[]>([]);
+  const [categorySuggestions, setCategorySuggestions] = useState<string[]>([]);
 
   const targetStoreId = profile?.store_id;
 
@@ -144,10 +146,17 @@ export function EditProductDialog({
         price: product.price?.toString() || '0',
         barcode: product.barcode || '',
         stock_quantity: product.stock_quantity?.toString() || '0',
+        category_name: '',
       });
       setImagePreview(product.image_url || null);
       setImageFile(null);
       fetchSuggestions();
+
+      if (product.category_id) {
+        supabase.from('categories').select('name').eq('id', product.category_id).single().then(({ data }) => {
+          if (data) setFormData(prev => ({ ...prev, category_name: data.name }));
+        });
+      }
     }
   }, [product, open]);
 
@@ -163,6 +172,11 @@ export function EditProductDialog({
       setModelSuggestions([...new Set(products.map(p => (p as any).model).filter(Boolean))] as string[]);
       setVendorSuggestions([...new Set(products.map(p => p.vendor_name).filter(Boolean))] as string[]);
       setNameSuggestions([...new Set(products.map(p => p.name).filter(Boolean))] as string[]);
+    }
+
+    const { data: categories } = await supabase.from('categories').select('name');
+    if (categories) {
+      setCategorySuggestions([...new Set(categories.map(c => c.name).filter(Boolean))]);
     }
   };
 
@@ -213,6 +227,29 @@ export function EditProductDialog({
         .replace(/\s+/g, '') || formData.name.toUpperCase().replace(/\s+/g, '-').slice(0, 20);
       const autoSku = product.sku || `${skuBase}-${Date.now().toString(36).toUpperCase()}`;
 
+      let finalCategoryId = product.category_id || null;
+      if (formData.category_name) {
+        const { data: existingCats } = await supabase
+          .from('categories')
+          .select('id')
+          .ilike('name', formData.category_name)
+          .limit(1);
+        
+        if (existingCats && existingCats.length > 0) {
+          finalCategoryId = existingCats[0].id;
+        } else {
+          const { data: newCategory, error: catError } = await supabase
+            .from('categories')
+            .insert({ name: formData.category_name })
+            .select('id')
+            .single();
+          if (catError) throw catError;
+          if (newCategory) finalCategoryId = newCategory.id;
+        }
+      } else {
+        finalCategoryId = null; // Removed category
+      }
+
       const { error: pError } = await supabase
         .from('products')
         .update({
@@ -226,6 +263,7 @@ export function EditProductDialog({
           color: formData.color || null,
           model: formData.model || null,
           product_type: formData.product_type,
+          category_id: finalCategoryId,
           image_url: image_url,
         })
         .eq('id', product.id);
@@ -317,8 +355,16 @@ export function EditProductDialog({
             />
           </div>
 
-          {/* Row 3: Color + Vendor */}
-          <div className="grid grid-cols-2 gap-6">
+          {/* Row 3: Category + Color + Vendor */}
+          <div className="grid grid-cols-3 gap-6">
+            <SmartDropdown
+              id="edit-category"
+              label="Category"
+              placeholder="e.g. Smartphones"
+              value={formData.category_name}
+              onChange={(v) => setFormData({...formData, category_name: v})}
+              suggestions={categorySuggestions}
+            />
             <SmartDropdown
               id="edit-color"
               label="Color"

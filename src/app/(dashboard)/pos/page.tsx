@@ -60,10 +60,13 @@ export default function POSPage() {
   const { profile } = useAuthStore();
   const { activeStoreId } = useActiveStore();
   const [products, setProducts] = useState<Product[]>([]);
-  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // Categories State
+  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   
   // Cart Actions
   const items = useCartStore(state => state.items);
@@ -544,6 +547,7 @@ export default function POSPage() {
     if (storeToUse) {
       fetchProducts();
       fetchStoreSettings();
+      fetchCategories();
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -555,6 +559,11 @@ export default function POSPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [profile, activeStoreId, storeToUse]);
+
+  const fetchCategories = async () => {
+    const { data } = await supabase.from('categories').select('id, name');
+    if (data) setCategories(data);
+  };
 
   const fetchProducts = async () => {
     if (!storeToUse) return;
@@ -706,7 +715,7 @@ export default function POSPage() {
   );
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 min-h-0 h-full animate-in fade-in duration-700 bg-white">
+    <div className="flex flex-col xl:flex-row gap-6 min-h-0 h-full animate-in fade-in duration-700 bg-white">
       {/* Product Selection */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -748,14 +757,60 @@ export default function POSPage() {
                 ))}
              </div>
           ) : (
-            <div className={cn(
-              "grid gap-6 pb-6",
-              viewMode === 'grid' ? "grid-cols-2 md:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"
-            )}>
-              {filteredProducts.map((product) => (
-                <div 
-                  key={product.id} 
-                  className={cn(
+            <div className="flex flex-col gap-6">
+              {selectedCategoryId !== null && search === '' && (
+                <div className="flex items-center gap-3">
+                   <Button variant="ghost" className="h-10 px-4 rounded-xl font-bold text-gray-500 hover:text-black bg-gray-50 hover:bg-gray-100 transition-colors" onClick={() => setSelectedCategoryId(null)}>
+                     <ArrowLeft className="mr-2 h-4 w-4" />
+                     Back to Categories
+                   </Button>
+                   <span className="text-xl font-black text-black">
+                     {selectedCategoryId === 'uncategorized' ? 'Uncategorized' : categories.find(c => c.id === selectedCategoryId)?.name || 'Products'}
+                   </span>
+                </div>
+              )}
+              <div className={cn(
+                "grid gap-6 pb-6",
+                viewMode === 'grid' ? "grid-cols-2 md:grid-cols-3 2xl:grid-cols-4" : "grid-cols-1"
+              )}>
+                {selectedCategoryId === null && search === '' ? (
+                  <>
+                     {categories.map(category => {
+                       const count = products.filter(p => p.category_id === category.id).length;
+                       if (count === 0) return null;
+                       return (
+                         <div 
+                           key={category.id} 
+                           className="group relative bg-gradient-to-br from-[#0071e3] to-[#00bbf9] rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-500 cursor-pointer overflow-hidden aspect-[4/3] flex flex-col items-start justify-end"
+                           onClick={() => setSelectedCategoryId(category.id)}
+                         >
+                            <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-white font-bold text-[12px]">
+                              {count} Items
+                            </div>
+                            <h3 className="font-black text-white text-2xl tracking-tight z-10">{category.name}</h3>
+                            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                         </div>
+                       );
+                     })}
+                     {products.filter(p => !p.category_id).length > 0 && (
+                       <div 
+                         className="group relative bg-gradient-to-br from-gray-700 to-gray-900 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-500 cursor-pointer overflow-hidden aspect-[4/3] flex flex-col items-start justify-end"
+                         onClick={() => setSelectedCategoryId('uncategorized')}
+                       >
+                          <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-white font-bold text-[12px]">
+                            {products.filter(p => !p.category_id).length} Items
+                          </div>
+                          <h3 className="font-black text-white text-2xl tracking-tight z-10">Uncategorized</h3>
+                       </div>
+                     )}
+                  </>
+                ) : (
+                  filteredProducts
+                    .filter(p => selectedCategoryId === null || search !== '' ? true : (selectedCategoryId === 'uncategorized' ? !p.category_id : p.category_id === selectedCategoryId))
+                    .map((product) => (
+                      <div 
+                        key={product.id} 
+                        className={cn(
                     "group relative bg-white rounded-3xl border border-transparent hover:border-[#0071e3]/30 shadow-sm hover:shadow-[0_20px_50px_rgba(0,0,0,0.12)] hover:-translate-y-1.5 transition-all duration-500 cursor-pointer overflow-hidden",
                     viewMode === 'list' && "flex items-center gap-6 p-4"
                   )}
@@ -821,6 +876,8 @@ export default function POSPage() {
                   )}
                 </div>
               ))}
+                )}
+              </div>
             </div>
           )}
         </ScrollArea>
@@ -828,8 +885,8 @@ export default function POSPage() {
 
       {/* Cart / Checkout Sidebar */}
       <div className={cn(
-        "w-full lg:w-[400px] flex-col h-auto lg:h-[calc(100vh-110px)] bg-white rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.08)] border border-gray-100 overflow-hidden shrink-0 lg:sticky lg:top-0",
-        items.length > 0 || customer || heldOrders.length > 0 ? "flex" : "hidden lg:flex"
+        "w-full xl:w-[400px] flex-col h-auto xl:h-[calc(100vh-110px)] bg-white rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.08)] border border-gray-100 overflow-hidden shrink-0 xl:sticky xl:top-0",
+        items.length > 0 || customer || heldOrders.length > 0 ? "flex" : "hidden xl:flex"
       )}>
         {/* Cart Header */}
         <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between bg-[#fbfbfd]/80 backdrop-blur-md shrink-0">
@@ -995,7 +1052,8 @@ export default function POSPage() {
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                  </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

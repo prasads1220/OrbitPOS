@@ -117,6 +117,7 @@ export function AddProductDialog({ onProductAdded, storeId }: { onProductAdded?:
     price: '',
     barcode: '',
     stock_quantity: '1',
+    category_name: '',
   });
 
   // Autocomplete suggestions from existing products in the store
@@ -124,6 +125,7 @@ export function AddProductDialog({ onProductAdded, storeId }: { onProductAdded?:
   const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
   const [vendorSuggestions, setVendorSuggestions] = useState<string[]>([]);
   const [nameSuggestions, setNameSuggestions] = useState<string[]>([]);
+  const [categorySuggestions, setCategorySuggestions] = useState<string[]>([]);
 
   const barcodeRef = useRef<HTMLInputElement>(null);
   const targetStoreId = storeId || profile?.store_id;
@@ -152,6 +154,11 @@ export function AddProductDialog({ onProductAdded, storeId }: { onProductAdded?:
       setModelSuggestions(uniqueModels);
       setVendorSuggestions(uniqueVendors);
       setNameSuggestions(uniqueNames);
+    }
+
+    const { data: categories } = await supabase.from('categories').select('name');
+    if (categories) {
+      setCategorySuggestions([...new Set(categories.map(c => c.name).filter(Boolean))]);
     }
   };
 
@@ -218,7 +225,29 @@ export function AddProductDialog({ onProductAdded, storeId }: { onProductAdded?:
         .replace(/\s+/g, '') || productName.toUpperCase().replace(/\s+/g, '-').slice(0, 20);
       const autoSku = `${skuBase}-${Date.now().toString(36).toUpperCase()}`;
 
-      // 3. Insert product
+      // 3. Handle Category Creation
+      let finalCategoryId = null;
+      if (formData.category_name) {
+        const { data: existingCats } = await supabase
+          .from('categories')
+          .select('id')
+          .ilike('name', formData.category_name)
+          .limit(1);
+        
+        if (existingCats && existingCats.length > 0) {
+          finalCategoryId = existingCats[0].id;
+        } else {
+          const { data: newCategory, error: catError } = await supabase
+            .from('categories')
+            .insert({ name: formData.category_name })
+            .select('id')
+            .single();
+          if (catError) throw catError;
+          if (newCategory) finalCategoryId = newCategory.id;
+        }
+      }
+
+      // 4. Insert product
       const { error: pError } = await supabase
         .from('products')
         .insert({
@@ -232,6 +261,7 @@ export function AddProductDialog({ onProductAdded, storeId }: { onProductAdded?:
           color: formData.color || null,
           model: formData.model || null,
           product_type: formData.product_type,
+          category_id: finalCategoryId,
           store_id: targetStoreId,
           image_url: image_url,
           has_variants: false,
@@ -263,6 +293,7 @@ export function AddProductDialog({ onProductAdded, storeId }: { onProductAdded?:
       price: '',
       barcode: '',
       stock_quantity: '1',
+      category_name: '',
     });
     setImageFile(null);
     setImagePreview(null);
@@ -350,8 +381,16 @@ export function AddProductDialog({ onProductAdded, storeId }: { onProductAdded?:
             />
           </div>
 
-          {/* Row 3: Color + Vendor */}
-          <div className="grid grid-cols-2 gap-6">
+          {/* Row 3: Category + Color + Vendor */}
+          <div className="grid grid-cols-3 gap-6">
+            <SmartDropdown
+              id="category"
+              label="Category"
+              placeholder="e.g. Smartphones"
+              value={formData.category_name}
+              onChange={(v) => setFormData({...formData, category_name: v})}
+              suggestions={categorySuggestions}
+            />
             <SmartDropdown
               id="color"
               label="Color"
