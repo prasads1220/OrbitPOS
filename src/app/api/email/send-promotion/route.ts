@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 const getSupabaseAdmin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Helper to add a delay between messages to avoid rate limits
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -36,23 +38,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No customers with valid email addresses found.' }, { status: 400 });
     }
 
-    // 3. Configure Nodemailer transporter
-    // For production, you should set these in your .env file. 
-    // Example: SMTP_HOST=smtp.gmail.com, SMTP_PORT=465, SMTP_USER=your_email@gmail.com, SMTP_PASS=app_password
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: Number(process.env.SMTP_PORT) || 465,
-      secure: true, // true for 465, false for other ports
-      auth: {
-        user: process.env.SMTP_USER || '', // Your email address
-        pass: process.env.SMTP_PASS || '', // Your app password
-      },
-    });
-
     // Check if credentials are provided
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    if (!process.env.RESEND_API_KEY) {
       return NextResponse.json({ 
-        error: 'SMTP credentials not configured. Please add SMTP_USER and SMTP_PASS to your environment variables.' 
+        error: 'Resend API key not configured. Please add RESEND_API_KEY to your environment variables.' 
       }, { status: 500 });
     }
 
@@ -62,8 +51,8 @@ export async function POST(req: NextRequest) {
     // 4. Send email to each customer
     for (const customer of targetCustomers) {
       try {
-        await transporter.sendMail({
-          from: `"OrbitPOS Marketing" <${process.env.SMTP_USER}>`,
+        const { error } = await resend.emails.send({
+          from: 'OrbitPOS <onboarding@resend.dev>',
           to: customer.email!,
           subject: 'Special Offer from OrbitPOS',
           text: message,
@@ -72,6 +61,10 @@ export async function POST(req: NextRequest) {
                    <p style="white-space: pre-wrap;">${message}</p>
                  </div>`,
         });
+
+        if (error) {
+          throw new Error(error.message);
+        }
         successCount++;
       } catch (emailErr: any) {
         failureCount++;
