@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getWhatsAppClient } from '@/lib/whatsapp-client';
 
 const getSupabaseAdmin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,11 +32,14 @@ export async function POST(req: NextRequest) {
     // 2. Filter customers with valid phone numbers
     const targetCustomers = customers.filter(c => c.phone && c.phone.trim().length >= 10);
     
-    if (targetCustomers.length === 0) {
-      return NextResponse.json({ error: 'No customers with valid phone numbers found.' }, { status: 400 });
+    if (!global.whatsappClient || global.whatsappStatus !== 'AUTHENTICATED') {
+      return NextResponse.json({ 
+        error: 'WhatsApp client is not authenticated. Please scan the QR code first.' 
+      }, { status: 400 });
     }
 
-    const openWaUrl = process.env.WHATSAPP_API_URL || 'http://localhost:8080';
+    const client = global.whatsappClient;
+
     let successCount = 0;
     let failureCount = 0;
 
@@ -48,27 +52,8 @@ export async function POST(req: NextRequest) {
       const recipientChatId = `${phone}@c.us`;
 
       try {
-        const response = await fetch(`${openWaUrl}/sendText`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.WHATSAPP_SESSION_KEY || ''}`,
-          },
-          body: JSON.stringify({
-            to: recipientChatId,
-            content: message,
-            // Support generic wa-automate format keys:
-            chatId: recipientChatId,
-            body: message,
-          }),
-        });
-
-        if (response.ok) {
-          successCount++;
-        } else {
-          failureCount++;
-          console.error(`Failed to send to ${phone}`);
-        }
+        await client.sendMessage(recipientChatId, message);
+        successCount++;
       } catch (waErr: any) {
         failureCount++;
         console.error(`Error sending to ${phone}:`, waErr.message);

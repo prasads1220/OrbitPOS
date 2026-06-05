@@ -52,6 +52,11 @@ export default function CustomersPage() {
   const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
+  const [broadcastChannel, setBroadcastChannel] = useState<'whatsapp' | 'email' | 'sms'>('whatsapp');
+  
+  // WhatsApp Status
+  const [waStatus, setWaStatus] = useState('DISCONNECTED');
+  const [waQrCode, setWaQrCode] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
@@ -175,6 +180,27 @@ export default function CustomersPage() {
     }
   };
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (broadcastModalOpen && broadcastChannel === 'whatsapp' && waStatus !== 'AUTHENTICATED') {
+      const fetchWaStatus = async () => {
+        try {
+          const res = await fetch('/api/whatsapp/status');
+          const data = await res.json();
+          setWaStatus(data.status);
+          if (data.qrCode) {
+            setWaQrCode(data.qrCode);
+          }
+        } catch (e) {
+          console.error('Failed to fetch WA status', e);
+        }
+      };
+      fetchWaStatus();
+      interval = setInterval(fetchWaStatus, 3000); // Check every 3 seconds
+    }
+    return () => clearInterval(interval);
+  }, [broadcastModalOpen, broadcastChannel, waStatus]);
+
   const handleBroadcast = async () => {
     if (!broadcastMessage.trim()) {
       toast.error('Please enter a message to broadcast');
@@ -183,7 +209,11 @@ export default function CustomersPage() {
     
     setIsBroadcasting(true);
     try {
-      const response = await fetch('/api/whatsapp/send-promotion', {
+      const endpoint = broadcastChannel === 'email' ? '/api/email/send-promotion' : 
+                       broadcastChannel === 'sms' ? '/api/sms/send-promotion' : 
+                       '/api/whatsapp/send-promotion';
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -666,9 +696,36 @@ export default function CustomersPage() {
 
             <div className="space-y-4">
               <p className="text-sm text-gray-500 font-medium">
-                Send a WhatsApp message to all customers with a valid phone number.
+                Send a promotional message to all eligible customers.
               </p>
               
+              <div className="space-y-2">
+                <label className="text-[13px] font-bold text-gray-700">Channel</label>
+                <div className="flex items-center gap-3 mb-2">
+                  <Button
+                    variant={broadcastChannel === 'whatsapp' ? 'default' : 'outline'}
+                    className={`rounded-xl h-10 ${broadcastChannel === 'whatsapp' ? 'bg-[#25D366] hover:bg-[#20bd5a] text-white border-none' : ''}`}
+                    onClick={() => setBroadcastChannel('whatsapp')}
+                  >
+                    WhatsApp
+                  </Button>
+                  <Button
+                    variant={broadcastChannel === 'email' ? 'default' : 'outline'}
+                    className={`rounded-xl h-10 ${broadcastChannel === 'email' ? 'bg-[#ea4335] hover:bg-[#d33c2f] text-white border-none' : ''}`}
+                    onClick={() => setBroadcastChannel('email')}
+                  >
+                    Email
+                  </Button>
+                  <Button
+                    variant={broadcastChannel === 'sms' ? 'default' : 'outline'}
+                    className={`rounded-xl h-10 ${broadcastChannel === 'sms' ? 'bg-[#0071e3] hover:bg-[#0077ED] text-white border-none' : ''}`}
+                    onClick={() => setBroadcastChannel('sms')}
+                  >
+                    SMS
+                  </Button>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-[13px] font-bold text-gray-700">Message Content</label>
                 <textarea 
@@ -676,10 +733,29 @@ export default function CustomersPage() {
                   placeholder="e.g. Special weekend offer! Get 20% off all shoes at OrbitPOS!"
                   value={broadcastMessage}
                   onChange={(e) => setBroadcastMessage(e.target.value)}
-                  disabled={isBroadcasting}
+                  disabled={isBroadcasting || (broadcastChannel === 'whatsapp' && waStatus !== 'AUTHENTICATED')}
                 />
               </div>
             </div>
+
+            {broadcastChannel === 'whatsapp' && waStatus !== 'AUTHENTICATED' && (
+              <div className="mt-6 p-6 border border-amber-200 bg-amber-50 rounded-2xl flex flex-col items-center justify-center text-center">
+                <h4 className="font-bold text-amber-800 mb-2">WhatsApp Device Linking Required</h4>
+                {waStatus === 'INITIALIZING' ? (
+                  <div className="py-4">
+                    <RefreshCw className="h-6 w-6 animate-spin text-amber-600 mx-auto mb-2" />
+                    <p className="text-sm text-amber-700">Starting WhatsApp Web Client...</p>
+                  </div>
+                ) : waStatus === 'QR_READY' && waQrCode ? (
+                  <div className="py-2">
+                    <p className="text-[13px] text-amber-700 mb-4">Open WhatsApp on your phone, tap Linked Devices, and scan this QR code.</p>
+                    <img src={waQrCode} alt="WhatsApp QR Code" className="w-48 h-48 mx-auto rounded-xl shadow-sm" />
+                  </div>
+                ) : (
+                  <p className="text-sm text-amber-700">Please wait while we connect to WhatsApp...</p>
+                )}
+              </div>
+            )}
 
             <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end gap-3">
               <Button
@@ -693,12 +769,12 @@ export default function CustomersPage() {
               <Button
                 className="rounded-xl h-11 font-bold bg-[#0071e3] hover:bg-[#0077ED] text-white shadow-sm px-6"
                 onClick={handleBroadcast}
-                disabled={isBroadcasting || !broadcastMessage.trim()}
+                disabled={isBroadcasting || !broadcastMessage.trim() || (broadcastChannel === 'whatsapp' && waStatus !== 'AUTHENTICATED')}
               >
                 {isBroadcasting ? (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Sending to All...
+                    Sending...
                   </>
                 ) : (
                   <>
