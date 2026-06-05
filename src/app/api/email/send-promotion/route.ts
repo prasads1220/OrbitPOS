@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
 
     let successCount = 0;
     let failureCount = 0;
+    let lastErrorMsg = '';
 
     // 4. Send email to each customer
     for (const customer of targetCustomers) {
@@ -68,11 +69,18 @@ export async function POST(req: NextRequest) {
         successCount++;
       } catch (emailErr: any) {
         failureCount++;
+        lastErrorMsg = emailErr.message;
         console.error(`Error sending email to ${customer.email}:`, emailErr.message);
       }
 
       // Add a small delay to prevent rate limiting
       await delay(500);
+    }
+
+    if (failureCount > 0 && successCount === 0) {
+      return NextResponse.json({ 
+        error: `All emails failed. Resend API Error: ${lastErrorMsg}` 
+      }, { status: 400 });
     }
 
     return NextResponse.json({ 
