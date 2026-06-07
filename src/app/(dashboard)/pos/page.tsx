@@ -785,7 +785,10 @@ export default function POSPage() {
                        return (
                          <div 
                            key={category.id} 
-                           className="group relative bg-gradient-to-br from-[#0071e3] to-[#00bbf9] rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-500 cursor-pointer overflow-hidden aspect-[4/3] flex flex-col items-start justify-end"
+                           className={cn(
+                             "group relative bg-gradient-to-br from-[#0071e3] to-[#00bbf9] rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-500 cursor-pointer overflow-hidden flex flex-col items-start justify-end",
+                             viewMode === 'grid' ? "aspect-[4/3]" : "h-32"
+                           )}
                            onClick={() => setSelectedCategoryId(category.id)}
                          >
                             <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-white font-bold text-[12px]">
@@ -798,7 +801,10 @@ export default function POSPage() {
                      })}
                      {products.filter(p => !p.category_id).length > 0 && (
                        <div 
-                         className="group relative bg-gradient-to-br from-gray-700 to-gray-900 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-500 cursor-pointer overflow-hidden aspect-[4/3] flex flex-col items-start justify-end"
+                         className={cn(
+                           "group relative bg-gradient-to-br from-gray-700 to-gray-900 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-500 cursor-pointer overflow-hidden flex flex-col items-start justify-end",
+                           viewMode === 'grid' ? "aspect-[4/3]" : "h-32"
+                         )}
                          onClick={() => setSelectedCategoryId('uncategorized')}
                        >
                           <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-white font-bold text-[12px]">
